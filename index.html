@@ -1,780 +1,548 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trace — SVG Logo Animator</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.22/dist/full.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
-/* ── Reset & base ───────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
 
-:root {
-  --bg-0:    #0e0e0e;
-  --bg-1:    #141414;
-  --bg-2:    #1a1a1a;
-  --bg-3:    #222;
-  --border:  #252525;
-  --border-2:#2e2e2e;
-  --text-1:  #f0f0f0;
-  --text-2:  #999;
-  --text-3:  #555;
-  --accent:  #5b6ef8;
-  --accent-h:#4a5de6;
-  --green:   #3ecf8e;
-  --radius:  6px;
-  --panel-w: 276px;
-}
+  /* Transparent background checkerboard */
+  .transparent-bg {
+    background-color: #1c1c1c;
+    background-image:
+      linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+      linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+      linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
 
-body {
-  background: var(--bg-0);
-  color: var(--text-1);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-}
+  /* Syntax highlight tokens */
+  .t-kw  { color: #c678dd; }
+  .t-fn  { color: #61afef; }
+  .t-cls { color: #e5c07b; }
+  .t-str { color: #98c379; }
+  .t-num { color: #d19a66; }
+  .t-cm  { color: #5c6370; font-style: italic; }
 
-/* ── Topbar ─────────────────────────────────────────────────── */
-.topbar {
-  height: 48px;
-  background: var(--bg-1);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 12px;
-  flex-shrink: 0;
-  user-select: none;
-}
+  pre {
+    font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.65;
+    white-space: pre;
+  }
 
-.topbar-brand {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.topbar-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-1);
-  letter-spacing: -0.4px;
-}
-.topbar-tag {
-  font-size: 11px;
-  color: var(--text-3);
-  font-weight: 400;
-}
+  /* Subtle grid backdrop for preview area */
+  .preview-grid {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 
-.spacer { flex: 1; }
-
-.topbar-file {
-  font-size: 11.5px;
-  color: var(--text-3);
-  font-style: italic;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Buttons ────────────────────────────────────────────────── */
-button {
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 14px;
-  line-height: 1;
-  transition: background 0.12s, opacity 0.12s, transform 0.08s;
-  -webkit-font-smoothing: antialiased;
-}
-button:active:not(:disabled) { transform: scale(0.97); }
-button:disabled { opacity: 0.35; cursor: default; }
-
-.btn-accent {
-  background: var(--accent);
-  color: #fff;
-}
-.btn-accent:not(:disabled):hover { background: var(--accent-h); }
-
-.btn-ghost {
-  background: var(--bg-3);
-  color: var(--text-2);
-  border: 1px solid var(--border-2);
-}
-.btn-ghost:not(:disabled):hover { background: #2a2a2a; color: var(--text-1); }
-
-.btn-sm { padding: 5px 10px; font-size: 11.5px; }
-
-/* ── Main layout ────────────────────────────────────────────── */
-.main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* ── Preview area ───────────────────────────────────────────── */
-.preview-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 28px;
-  overflow: hidden;
-  background: var(--bg-0);
-  position: relative;
-}
-
-/* Subtle grid background */
-.preview-area::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--bg-1) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-1) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  opacity: 0.4;
-}
-
-.preview-wrap {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  max-width: 100%;
-}
-
-.preview-canvas {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-  max-width: 100%;
-  position: relative;
-}
-
-/* Transparent background checkerboard */
-.preview-canvas.is-transparent {
-  background-color: #1a1a1a !important;
-  background-image:
-    linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
-    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
-  background-size: 14px 14px;
-  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
-}
-
-.preview-canvas svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* Drop zone */
-.drop-zone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  cursor: pointer;
-  border: 1.5px dashed var(--border-2);
-  border-radius: 8px;
-  transition: border-color 0.15s, background 0.15s;
-  padding: 0 32px;
-}
-.drop-zone:hover,
-.drop-zone.drag-over {
-  border-color: var(--accent);
-  background: rgba(91,110,248,0.04);
-}
-
-.drop-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  color: var(--text-3);
-}
-.drop-label {
-  text-align: center;
-  color: var(--text-3);
-  line-height: 1.8;
-}
-.drop-label strong {
-  color: var(--text-2);
-  font-weight: 500;
-  display: block;
-  font-size: 13px;
-}
-.drop-label span {
-  font-size: 11.5px;
-  color: var(--text-3);
-}
-
-/* Preview controls bar */
-.preview-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 4px 10px;
-  font-size: 11px;
-  color: var(--text-3);
-  transition: color 0.2s;
-  min-width: 80px;
-  justify-content: center;
-}
-.status-pill.active { color: var(--accent); }
-.status-pill.done   { color: var(--green); }
-
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.status-pill.active .status-dot,
-.status-pill.done   .status-dot { opacity: 1; }
-
-/* ── Settings panel ─────────────────────────────────────────── */
-.settings {
-  width: var(--panel-w);
-  background: var(--bg-1);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex-shrink: 0;
-}
-
-.settings-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.section-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 14px;
-}
-
-/* ── Controls ───────────────────────────────────────────────── */
-.ctrl { margin-bottom: 14px; }
-.ctrl:last-child { margin-bottom: 0; }
-
-.ctrl-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 7px;
-}
-.ctrl-name  { font-size: 12px; color: var(--text-2); }
-.ctrl-val   { font-size: 12px; color: var(--text-1); font-variant-numeric: tabular-nums; }
-
-/* Range slider */
-input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--bg-3);
-  cursor: pointer;
-  outline: none;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  box-shadow: 0 0 0 2px var(--bg-1);
-  transition: transform 0.1s;
-}
-input[type=range]:active::-webkit-slider-thumb { transform: scale(1.2); }
-
-/* Color row */
-.color-row { display: flex; gap: 8px; align-items: center; }
-
-input[type=color] {
-  width: 30px;
-  height: 28px;
-  border: 1px solid var(--border-2);
-  border-radius: 5px;
-  background: var(--bg-3);
-  cursor: pointer;
-  padding: 2px 3px;
-  flex-shrink: 0;
-}
-
-input[type=text] {
-  flex: 1;
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-1);
-  padding: 5px 8px;
-  font-size: 12px;
-  font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', 'Courier New', monospace;
-  transition: border-color 0.15s;
-}
-input[type=text]:focus { outline: none; border-color: var(--accent); }
-
-/* Select */
-select {
-  width: 100%;
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-1);
-  padding: 6px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-select:focus { outline: none; border-color: var(--accent); }
-
-/* Background presets */
-.bg-presets {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 10px;
-}
-.bg-preset {
-  padding: 5px 0;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 5px;
-  background: var(--bg-3);
-  color: var(--text-3);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.12s;
-}
-.bg-preset:hover { color: var(--text-2); border-color: var(--border-2); }
-.bg-preset.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-/* Transparent badge */
-.transparent-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(91,110,248,0.08);
-  border: 1px solid rgba(91,110,248,0.2);
-  border-radius: var(--radius);
-  padding: 7px 10px;
-  font-size: 11.5px;
-  color: #8a9bf5;
-  margin-top: 8px;
-}
-.transparent-note svg { flex-shrink: 0; }
-
-/* Divider */
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 2px 0 14px;
-}
-
-/* ── Code panel ─────────────────────────────────────────────── */
-.code-panel {
-  border-top: 1px solid var(--border);
-  background: var(--bg-0);
-  flex-shrink: 0;
-  overflow: hidden;
-  max-height: 32px;
-  transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.code-panel.open { max-height: 220px; }
-
-.code-header {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 16px;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid transparent;
-  transition: background 0.12s;
-}
-.code-header:hover { background: var(--bg-1); }
-.code-panel.open .code-header { border-bottom-color: var(--border); }
-
-.code-header-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-3);
-}
-.code-chevron {
-  font-size: 9px;
-  color: var(--text-3);
-  margin-left: auto;
-  transition: transform 0.2s;
-}
-.code-panel.open .code-chevron { transform: rotate(180deg); }
-
-.code-body {
-  overflow: auto;
-  max-height: 188px;
-  padding: 12px 16px;
-}
-
-pre {
-  font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', 'Courier New', monospace;
-  font-size: 11.5px;
-  line-height: 1.65;
-  color: #636d82;
-  white-space: pre;
-}
-
-/* Syntax tokens */
-.kw  { color: #c678dd; }
-.fn  { color: #61afef; }
-.cls { color: #e5c07b; }
-.str { color: #98c379; }
-.num { color: #d19a66; }
-.cm  { color: #3e4451; font-style: italic; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-2); }
+  /* Reset dot — small dot next to slider, lights up when changed */
+  .rdot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    cursor: default;
+    opacity: 0.2;
+  }
+  .rdot.changed {
+    opacity: 1;
+    background: hsl(var(--p));
+    border-color: hsl(var(--p));
+    cursor: pointer;
+    box-shadow: 0 0 0 2px hsl(var(--p) / 0.25);
+  }
 </style>
 </head>
-<body>
+<body class="bg-base-200">
 
-<!-- ── TOPBAR ──────────────────────────────────────────────── -->
-<div class="topbar">
-  <div class="topbar-brand">
-    <span class="topbar-name">Trace</span>
-    <span class="topbar-tag">SVG logo animator</span>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 1 — SETUP                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="setupScreen"
+     style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:2rem; padding:2rem;">
+
+  <div class="text-center">
+    <h1 class="text-5xl font-bold tracking-tight mb-2">Trace</h1>
+    <p class="text-base-content/40 text-sm">SVG logo animator — powered by Manim</p>
   </div>
-  <div class="spacer"></div>
-  <span class="topbar-file" id="topbarFile">no file loaded</span>
-  <button class="btn-ghost btn-sm" onclick="triggerUpload()">Upload SVG</button>
-  <button class="btn-accent btn-sm" id="downloadBtn" onclick="downloadCode()" disabled>
-    Download .py
-  </button>
-  <input type="file" id="fileInput" accept=".svg" style="display:none" onchange="handleFileInput(event)">
-</div>
 
-<!-- ── MAIN ────────────────────────────────────────────────── -->
-<div class="main">
+  <div class="card bg-base-100 shadow-2xl w-full max-w-md">
+    <div class="card-body gap-6">
 
-  <!-- PREVIEW -->
-  <div class="preview-area" id="previewArea">
-    <div class="preview-wrap">
-      <div class="preview-canvas" id="previewCanvas">
-        <div class="drop-zone" id="dropZone"
-             ondragover="handleDragOver(event)"
-             ondragleave="handleDragLeave(event)"
-             ondrop="handleDrop(event)"
-             onclick="triggerUpload()">
-          <div class="drop-icon">⬡</div>
-          <div class="drop-label">
-            <strong>Drop your SVG here</strong>
-            <span>or click to browse</span>
-          </div>
+      <!-- Step 1 label -->
+      <div class="flex items-center gap-3">
+        <div class="badge badge-primary badge-sm font-bold">1</div>
+        <span class="text-sm font-medium text-base-content/70">Upload your SVG logo</span>
+      </div>
+
+      <!-- Drop zone -->
+      <div id="setupDropZone"
+           class="border-2 border-dashed border-base-content/15 rounded-2xl p-10 flex flex-col items-center gap-4 cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5"
+           ondragover="event.preventDefault(); this.classList.add('border-primary','bg-primary/5')"
+           ondragleave="this.classList.remove('border-primary','bg-primary/5')"
+           ondrop="handleSetupDrop(event)"
+           onclick="triggerUpload()">
+        <div class="text-5xl opacity-20 select-none">⬡</div>
+        <div class="text-center">
+          <p class="font-medium text-base-content/50">Drop SVG here</p>
+          <p class="text-xs text-base-content/30 mt-1">or click to browse</p>
+        </div>
+        <div id="setupFileBadge" class="badge badge-success gap-1 hidden">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="setupFilename"></span>
         </div>
       </div>
 
-      <div class="preview-controls" id="previewControls" style="display:none">
-        <button class="btn-ghost btn-sm" onclick="replayAnimation()">↺  Replay</button>
-        <div class="status-pill" id="statusPill">
-          <span class="status-dot"></span>
+      <div class="divider my-0 text-base-content/20 text-xs">then</div>
+
+      <!-- Step 2 label -->
+      <div class="flex items-center gap-3">
+        <div class="badge badge-primary badge-sm font-bold">2</div>
+        <span class="text-sm font-medium text-base-content/70">Choose canvas format</span>
+      </div>
+
+      <!-- Aspect ratio -->
+      <div class="join w-full">
+        <input type="radio" name="setupAR" class="join-item btn flex-1"
+               aria-label="16 : 9" value="16:9" onchange="setAspectRatio(this.value)" checked>
+        <input type="radio" name="setupAR" class="join-item btn flex-1"
+               aria-label="9 : 16" value="9:16" onchange="setAspectRatio(this.value)">
+        <input type="radio" name="setupAR" class="join-item btn flex-1"
+               aria-label="1 : 1" value="1:1" onchange="setAspectRatio(this.value)">
+      </div>
+
+      <!-- Continue -->
+      <button id="continueBtn" class="btn btn-primary w-full btn-lg" onclick="showEditor()" disabled>
+        Start animating →
+      </button>
+
+    </div>
+  </div>
+
+  <p class="text-xs text-base-content/20">No account needed · runs locally with Manim</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 2 — EDITOR                                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="editorScreen"
+     style="display:none; flex-direction:column; height:100%;">
+
+  <!-- Navbar -->
+  <div class="navbar bg-base-100 border-b border-base-content/10 min-h-[50px] px-4 gap-4">
+    <div class="navbar-start gap-3">
+      <span class="font-bold text-lg tracking-tight">Trace</span>
+      <span class="badge badge-ghost badge-sm font-mono truncate max-w-[140px]" id="editorFilename">logo.svg</span>
+    </div>
+    <div class="navbar-center">
+      <div class="join join-sm">
+        <input type="radio" name="editorAR" class="join-item btn btn-sm"
+               aria-label="16:9" value="16:9" onchange="setAspectRatio(this.value)" checked>
+        <input type="radio" name="editorAR" class="join-item btn btn-sm"
+               aria-label="9:16" value="9:16" onchange="setAspectRatio(this.value)">
+        <input type="radio" name="editorAR" class="join-item btn btn-sm"
+               aria-label="1:1" value="1:1" onchange="setAspectRatio(this.value)">
+      </div>
+    </div>
+    <div class="navbar-end gap-2">
+      <button class="btn btn-ghost btn-sm" onclick="triggerUpload()">New SVG</button>
+      <button class="btn btn-primary btn-sm gap-1.5"
+              onclick="updateCode(); document.getElementById('exportModal').showModal()">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="display:flex; flex:1; overflow:hidden;">
+
+    <!-- Preview area -->
+    <div id="previewArea"
+         class="preview-grid flex-1 flex flex-col items-center justify-center gap-5 p-6 bg-base-200 relative overflow-hidden">
+
+      <!-- Canvas -->
+      <div id="previewCanvas"
+           class="rounded-xl border border-base-content/10 overflow-hidden flex items-center justify-center shadow-2xl"
+           style="background:#0d0d0d;">
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-3 z-10">
+        <button class="btn btn-sm btn-ghost gap-2" onclick="replayAnimation()">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>
+          Replay
+        </button>
+        <div class="badge badge-ghost gap-2" id="statusBadge">
+          <span class="w-1.5 h-1.5 rounded-full bg-current opacity-0" id="statusDot"></span>
           <span id="statusText">ready</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- SETTINGS PANEL -->
-  <div class="settings">
+    <!-- Settings panel -->
+    <div class="w-72 bg-base-100 border-l border-base-content/10 flex flex-col overflow-hidden">
 
-    <!-- Animation -->
-    <div class="settings-section">
-      <div class="section-label">Animation</div>
-
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Draw time</span>
-          <span class="ctrl-val" id="v-drawTime">4.0 s</span>
-        </div>
-        <input type="range" id="drawTime" min="0.5" max="12" step="0.1" value="4"
-               oninput="onRange('drawTime', +this.value, v => v.toFixed(1) + ' s')">
+      <!-- Tabs -->
+      <div role="tablist" class="tabs tabs-boxed tabs-sm m-3 mb-0 bg-base-200/80">
+        <a role="tab" class="tab tab-active" id="tab-anim-btn" onclick="switchTab('anim')">Animation</a>
+        <a role="tab" class="tab" id="tab-stroke-btn" onclick="switchTab('stroke')">Stroke</a>
+        <a role="tab" class="tab" id="tab-bg-btn" onclick="switchTab('bg')">Background</a>
       </div>
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Lag ratio</span>
-          <span class="ctrl-val" id="v-lagRatio">0.50</span>
-        </div>
-        <input type="range" id="lagRatio" min="0" max="1" step="0.05" value="0.5"
-               oninput="onRange('lagRatio', +this.value, v => v.toFixed(2))">
-      </div>
+      <!-- ── Tab: Animation ── -->
+      <div id="tab-anim" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Fill time</span>
-          <span class="ctrl-val" id="v-fillTime">1.2 s</span>
+        <!-- Slider macro — repeated pattern -->
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Draw time</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-drawTime">4.0 s</span>
+              <div class="rdot" id="rd-drawTime" onclick="resetSlider('drawTime')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="drawTime"
+                 min="0.5" max="12" step="0.1" value="4"
+                 oninput="onRange('drawTime', +this.value, v => v.toFixed(1)+' s')">
         </div>
-        <input type="range" id="fillTime" min="0.2" max="6" step="0.1" value="1.2"
-               oninput="onRange('fillTime', +this.value, v => v.toFixed(1) + ' s')">
-      </div>
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Pause between phases</span>
-          <span class="ctrl-val" id="v-waitBetween">0.4 s</span>
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Lag ratio</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-lagRatio">0.50</span>
+              <div class="rdot" id="rd-lagRatio" onclick="resetSlider('lagRatio')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="lagRatio"
+                 min="0" max="1" step="0.05" value="0.5"
+                 oninput="onRange('lagRatio', +this.value, v => v.toFixed(2))">
         </div>
-        <input type="range" id="waitBetween" min="0" max="3" step="0.1" value="0.4"
-               oninput="onRange('waitBetween', +this.value, v => v.toFixed(1) + ' s')">
-      </div>
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Hold at end</span>
-          <span class="ctrl-val" id="v-waitEnd">1.5 s</span>
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Fill time</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-fillTime">1.2 s</span>
+              <div class="rdot" id="rd-fillTime" onclick="resetSlider('fillTime')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="fillTime"
+                 min="0.2" max="6" step="0.1" value="1.2"
+                 oninput="onRange('fillTime', +this.value, v => v.toFixed(1)+' s')">
         </div>
-        <input type="range" id="waitEnd" min="0" max="6" step="0.1" value="1.5"
-               oninput="onRange('waitEnd', +this.value, v => v.toFixed(1) + ' s')">
-      </div>
 
-      <div class="divider"></div>
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Pause between phases</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-waitBetween">0.4 s</span>
+              <div class="rdot" id="rd-waitBetween" onclick="resetSlider('waitBetween')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="waitBetween"
+                 min="0" max="3" step="0.1" value="0.4"
+                 oninput="onRange('waitBetween', +this.value, v => v.toFixed(1)+' s')">
+        </div>
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Stroke color</span>
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Hold at end</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-waitEnd">1.5 s</span>
+              <div class="rdot" id="rd-waitEnd" onclick="resetSlider('waitEnd')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="waitEnd"
+                 min="0" max="6" step="0.1" value="1.5"
+                 oninput="onRange('waitEnd', +this.value, v => v.toFixed(1)+' s')">
         </div>
-        <div class="color-row">
-          <input type="color" id="strokeColor" value="#ffffff"
-                 oninput="onColorPick('strokeColor', this.value)">
-          <input type="text"  id="strokeColorHex" value="#ffffff" maxlength="7"
-                 oninput="onColorText('strokeColor', this.value)">
-        </div>
-      </div>
 
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Stroke width</span>
-          <span class="ctrl-val" id="v-strokeWidth">1.5</span>
+      </div><!-- /tab-anim -->
+
+      <!-- ── Tab: Stroke ── -->
+      <div id="tab-stroke" class="hidden flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+
+        <div class="form-control gap-2">
+          <label class="text-xs text-base-content/50 font-medium">Stroke color</label>
+
+          <!-- Swatch + hex input -->
+          <div class="flex gap-2 items-center">
+            <label class="cursor-pointer relative" title="Open color picker">
+              <div class="w-10 h-10 rounded-xl border-2 border-base-content/20 shadow-inner transition-transform hover:scale-105"
+                   id="strokeSwatch" style="background:#FFFFFF;"></div>
+              <input type="color" class="absolute opacity-0 w-0 h-0" id="strokeColorNative"
+                     value="#ffffff" oninput="onColorChange('stroke', this.value)">
+            </label>
+            <input type="text" class="input input-sm input-bordered font-mono flex-1 uppercase"
+                   id="strokeColorHex" value="#FFFFFF" maxlength="7"
+                   oninput="onColorText('stroke', this.value)"
+                   placeholder="#FFFFFF">
+          </div>
+
+          <!-- Preset swatches -->
+          <div class="flex gap-1.5 flex-wrap">
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#FFFFFF" onclick="onColorChange('stroke','#FFFFFF')" title="White"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#C0C0C0" onclick="onColorChange('stroke','#C0C0C0')" title="Silver"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#FFD700" onclick="onColorChange('stroke','#FFD700')" title="Gold"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#3B82F6" onclick="onColorChange('stroke','#3B82F6')" title="Blue"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#EF4444" onclick="onColorChange('stroke','#EF4444')" title="Red"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#22C55E" onclick="onColorChange('stroke','#22C55E')" title="Green"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#A855F7" onclick="onColorChange('stroke','#A855F7')" title="Purple"></button>
+            <button class="w-7 h-7 rounded-lg border border-base-content/20 hover:scale-110 transition-transform shadow-sm" style="background:#F97316" onclick="onColorChange('stroke','#F97316')" title="Orange"></button>
+          </div>
         </div>
-        <input type="range" id="strokeWidth" min="0.5" max="8" step="0.5" value="1.5"
-               oninput="onRange('strokeWidth', +this.value, v => v.toFixed(1))">
+
+        <div class="divider my-0"></div>
+
+        <div class="form-control gap-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-base-content/50">Stroke width</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-base-content/80" id="v-strokeWidth">1.5</span>
+              <div class="rdot" id="rd-strokeWidth" onclick="resetSlider('strokeWidth')" title="Reset to default"></div>
+            </div>
+          </div>
+          <input type="range" class="range range-xs range-primary" id="strokeWidth"
+                 min="0.5" max="8" step="0.5" value="1.5"
+                 oninput="onRange('strokeWidth', +this.value, v => v.toFixed(1))">
+        </div>
+
+      </div><!-- /tab-stroke -->
+
+      <!-- ── Tab: Background ── -->
+      <div id="tab-bg" class="hidden flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+
+        <!-- Preset grid -->
+        <div class="form-control gap-2">
+          <label class="text-xs text-base-content/50 font-medium">Preset</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="btn btn-sm justify-start gap-2" id="bg-btn-transparent" onclick="setBg('transparent')">
+              <span class="w-4 h-4 rounded shrink-0"
+                    style="background: repeating-conic-gradient(#555 0% 25%, #222 0% 50%) 0/8px 8px"></span>
+              Transparent
+            </button>
+            <button class="btn btn-sm justify-start gap-2" id="bg-btn-dark" onclick="setBg('#0d0d0d')">
+              <span class="w-4 h-4 rounded border border-base-content/20 shrink-0" style="background:#0d0d0d"></span>
+              Dark
+            </button>
+            <button class="btn btn-sm justify-start gap-2" id="bg-btn-black" onclick="setBg('#000000')">
+              <span class="w-4 h-4 rounded border border-base-content/20 shrink-0" style="background:#000000"></span>
+              Black
+            </button>
+            <button class="btn btn-sm justify-start gap-2" id="bg-btn-white" onclick="setBg('#ffffff')">
+              <span class="w-4 h-4 rounded border border-base-content/20 shrink-0" style="background:#ffffff"></span>
+              White
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom color (hidden when transparent) -->
+        <div id="bgCustomRow" class="form-control gap-2">
+          <label class="text-xs text-base-content/50 font-medium">Custom color</label>
+          <div class="flex gap-2 items-center">
+            <label class="cursor-pointer relative" title="Open color picker">
+              <div class="w-10 h-10 rounded-xl border-2 border-base-content/20 shadow-inner transition-transform hover:scale-105"
+                   id="bgSwatch" style="background:#0d0d0d;"></div>
+              <input type="color" class="absolute opacity-0 w-0 h-0" id="bgColorNative"
+                     value="#0d0d0d" oninput="onColorChange('bg', this.value)">
+            </label>
+            <input type="text" class="input input-sm input-bordered font-mono flex-1 uppercase"
+                   id="bgColorHex" value="#0D0D0D" maxlength="7"
+                   oninput="onColorText('bg', this.value)"
+                   placeholder="#0D0D0D">
+          </div>
+        </div>
+
+        <!-- Transparent info -->
+        <div id="transparentInfo" class="alert alert-info p-3 text-xs hidden">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Transparent exports require <strong>MOV</strong> format — auto-selected in Export.</span>
+        </div>
+
+      </div><!-- /tab-bg -->
+
+    </div><!-- /settings panel -->
+  </div><!-- /body -->
+</div><!-- /editor screen -->
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- EXPORT MODAL                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<dialog id="exportModal" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box max-w-lg w-full">
+
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-xl tracking-tight">Export</h3>
+      <form method="dialog">
+        <button class="btn btn-sm btn-ghost btn-circle">✕</button>
+      </form>
+    </div>
+
+    <!-- Quality -->
+    <div class="mb-5">
+      <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold mb-2">Quality</p>
+      <div class="join w-full">
+        <input type="radio" name="expQuality" class="join-item btn flex-1"
+               aria-label="720p" value="720" onchange="S.quality=720; updateCode()">
+        <input type="radio" name="expQuality" class="join-item btn flex-1"
+               aria-label="1080p" value="1080" onchange="S.quality=1080; updateCode()">
+        <input type="radio" name="expQuality" class="join-item btn flex-1"
+               aria-label="4K" value="2160" onchange="S.quality=2160; updateCode()" checked>
       </div>
     </div>
 
-    <!-- Background -->
-    <div class="settings-section">
-      <div class="section-label">Background</div>
-
-      <div class="bg-presets">
-        <button class="bg-preset active" data-bg="#0d0d0d"  onclick="setBg('#0d0d0d')">Dark</button>
-        <button class="bg-preset"        data-bg="#000000"  onclick="setBg('#000000')">Black</button>
-        <button class="bg-preset"        data-bg="#ffffff"  onclick="setBg('#ffffff')">White</button>
-        <button class="bg-preset"        data-bg="transparent" onclick="setBg('transparent')">Alpha</button>
+    <!-- Canvas format -->
+    <div class="mb-5">
+      <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold mb-2">Canvas format</p>
+      <div class="join w-full">
+        <input type="radio" name="expAR" class="join-item btn flex-1"
+               aria-label="16 : 9" value="16:9" onchange="setAspectRatio(this.value)" checked>
+        <input type="radio" name="expAR" class="join-item btn flex-1"
+               aria-label="9 : 16" value="9:16" onchange="setAspectRatio(this.value)">
+        <input type="radio" name="expAR" class="join-item btn flex-1"
+               aria-label="1 : 1" value="1:1" onchange="setAspectRatio(this.value)">
       </div>
+    </div>
 
-      <div class="color-row" id="bgColorRow">
-        <input type="color" id="bgColor" value="#0d0d0d"
-               oninput="onColorPick('bgColor', this.value)">
-        <input type="text"  id="bgColorHex" value="#0d0d0d" maxlength="7"
-               oninput="onColorText('bgColor', this.value)">
+    <!-- FPS -->
+    <div class="mb-5">
+      <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold mb-2">Frame rate</p>
+      <div class="join w-full">
+        <input type="radio" name="expFPS" class="join-item btn flex-1"
+               aria-label="24 fps" value="24" onchange="S.fps=24; updateCode()">
+        <input type="radio" name="expFPS" class="join-item btn flex-1"
+               aria-label="25 fps" value="25" onchange="S.fps=25; updateCode()" checked>
+        <input type="radio" name="expFPS" class="join-item btn flex-1"
+               aria-label="30 fps" value="30" onchange="S.fps=30; updateCode()">
+        <input type="radio" name="expFPS" class="join-item btn flex-1"
+               aria-label="60 fps" value="60" onchange="S.fps=60; updateCode()">
       </div>
+    </div>
 
-      <div class="transparent-note" id="transparentNote" style="display:none">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    <!-- Format -->
+    <div class="mb-5">
+      <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold mb-2">Format</p>
+      <div class="join w-full">
+        <input type="radio" name="expFormat" class="join-item btn flex-1"
+               aria-label="MP4" value="mp4" onchange="S.format='mp4'; updateCode()">
+        <input type="radio" name="expFormat" class="join-item btn flex-1"
+               aria-label="MOV" value="mov" onchange="S.format='mov'; updateCode()" checked id="fmtMov">
+        <input type="radio" name="expFormat" class="join-item btn flex-1"
+               aria-label="GIF" value="gif" onchange="S.format='gif'; updateCode()">
+        <input type="radio" name="expFormat" class="join-item btn flex-1"
+               aria-label="WebM" value="webm" onchange="S.format='webm'; updateCode()">
+      </div>
+    </div>
+
+    <!-- Logo width -->
+    <div class="mb-5">
+      <div class="flex justify-between items-center mb-2">
+        <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold">Logo width</p>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-mono text-base-content/70" id="v-logoWidth">4.0 units</span>
+          <div class="rdot" id="rd-logoWidth" onclick="resetSlider('logoWidth')" title="Reset to default"></div>
+        </div>
+      </div>
+      <input type="range" class="range range-xs range-primary w-full" id="logoWidth"
+             min="1" max="14" step="0.5" value="4"
+             oninput="onRange('logoWidth', +this.value, v => v.toFixed(1)+' units')">
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Code collapse -->
+    <div class="collapse collapse-arrow bg-base-200 rounded-xl mb-5">
+      <input type="checkbox" class="peer">
+      <div class="collapse-title text-sm font-medium py-3 px-4">Generated Python code</div>
+      <div class="collapse-content px-0">
+        <div class="bg-base-300 rounded-b-xl px-4 py-3 overflow-auto max-h-64">
+          <pre id="codeOut" class="text-base-content/60 text-xs"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-3 justify-end">
+      <form method="dialog">
+        <button class="btn btn-ghost">Cancel</button>
+      </form>
+      <button class="btn btn-primary gap-2" onclick="downloadCode()">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Transparent exports require <strong style="margin:0 3px">MOV</strong> format
-      </div>
+        Download .py
+      </button>
     </div>
 
-    <!-- Export -->
-    <div class="settings-section">
-      <div class="section-label">Export (Manim)</div>
-
-      <div class="ctrl">
-        <div class="ctrl-header">
-          <span class="ctrl-name">Logo width (scene units)</span>
-          <span class="ctrl-val" id="v-logoWidth">4.0</span>
-        </div>
-        <input type="range" id="logoWidth" min="1" max="14" step="0.5" value="4"
-               oninput="onRange('logoWidth', +this.value, v => v.toFixed(1))">
-      </div>
-
-      <div class="ctrl">
-        <div class="ctrl-header"><span class="ctrl-name">Resolution</span></div>
-        <select id="resolution" onchange="S.resolution = this.value; updateCode()">
-          <option value="1920x1080">1080p 16:9 — 1920 × 1080</option>
-          <option value="1080x1920">1080p 9:16 — 1080 × 1920</option>
-          <option value="1280x720">720p 16:9 — 1280 × 720</option>
-          <option value="3840x2160">4K 16:9 — 3840 × 2160</option>
-          <option value="1080x1080">Square — 1080 × 1080</option>
-        </select>
-      </div>
-
-      <div class="ctrl">
-        <div class="ctrl-header"><span class="ctrl-name">Frame rate</span></div>
-        <select id="fps" onchange="S.fps = +this.value; updateCode()">
-          <option value="24">24 fps</option>
-          <option value="30" selected>30 fps</option>
-          <option value="60">60 fps</option>
-        </select>
-      </div>
-
-      <div class="ctrl">
-        <div class="ctrl-header"><span class="ctrl-name">Format</span></div>
-        <select id="format" onchange="S.format = this.value; updateCode()">
-          <option value="mp4">MP4 — H.264</option>
-          <option value="mov">MOV — ProRes (alpha)</option>
-          <option value="gif">GIF</option>
-          <option value="webm">WebM</option>
-        </select>
-      </div>
-    </div>
-
-  </div><!-- /settings -->
-</div><!-- /main -->
-
-<!-- ── CODE PANEL ──────────────────────────────────────────── -->
-<div class="code-panel" id="codePanel">
-  <div class="code-header" onclick="toggleCode()">
-    <span class="code-header-label">Generated Python</span>
-    <span class="code-chevron">▲</span>
   </div>
-  <div class="code-body">
-    <pre id="codeOut"></pre>
-  </div>
-</div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
-<!-- ── SCRIPT ──────────────────────────────────────────────── -->
+<!-- Hidden file input -->
+<input type="file" id="fileInput" accept=".svg" style="display:none" onchange="handleFileInput(event)">
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCRIPT                                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 <script>
 // ────────────────────────────────────────────────────────────
 // State
 // ────────────────────────────────────────────────────────────
-let svgFilename = 'logo.svg';
-let animParts   = [];   // { el, pathLen, fillRGBA, fillOp, hasFill }
-let animFrame   = null;
-
-const S = {
+const DEFAULTS = {
   drawTime:    4,
   lagRatio:    0.5,
   fillTime:    1.2,
   waitBetween: 0.4,
   waitEnd:     1.5,
-  strokeColor: '#ffffff',
+  strokeColor: '#FFFFFF',
   strokeWidth: 1.5,
   bgColor:     '#0d0d0d',
-  transparent: false,
+  transparent: true,
+  aspectRatio: '16:9',
   logoWidth:   4.0,
-  resolution:  '1920x1080',
-  fps:         30,
-  format:      'mp4',
+  quality:     2160,
+  fps:         25,
+  format:      'mov',
 };
 
-// ────────────────────────────────────────────────────────────
-// Setting helpers
-// ────────────────────────────────────────────────────────────
-function onRange(key, value, fmt) {
-  S[key] = value;
-  const el = document.getElementById('v-' + key);
-  if (el) el.textContent = fmt(value);
-  updateCode();
-}
-
-function onColorPick(key, hex) {
-  S[key] = hex;
-  document.getElementById(key + 'Hex').value = hex;
-  if (key === 'bgColor') applyBg();
-  updateCode();
-}
-
-function onColorText(key, value) {
-  if (/^#[0-9a-fA-F]{6}$/.test(value)) {
-    S[key] = value;
-    document.getElementById(key).value = value;
-    if (key === 'bgColor') applyBg();
-    updateCode();
-  }
-}
+const S         = { ...DEFAULTS };
+let svgFilename = 'logo.svg';
+let animParts   = [];
+let animFrame   = null;
 
 // ────────────────────────────────────────────────────────────
-// Background
+// Screens
 // ────────────────────────────────────────────────────────────
-function setBg(value) {
-  const isTransparent = value === 'transparent';
-  S.transparent = isTransparent;
-  S.bgColor     = isTransparent ? '#0d0d0d' : value;
-
-  // Update preset buttons
-  document.querySelectorAll('.bg-preset').forEach(b => {
-    b.classList.toggle('active', b.dataset.bg === value);
-  });
-
-  // Show/hide color picker
-  document.getElementById('bgColorRow').style.display      = isTransparent ? 'none' : 'flex';
-  document.getElementById('transparentNote').style.display = isTransparent ? 'flex' : 'none';
-
-  // Auto-select MOV when transparent
-  if (isTransparent) {
-    S.format = 'mov';
-    document.getElementById('format').value = 'mov';
-  }
-
-  applyBg();
-  updateCode();
-}
-
-function applyBg() {
-  const canvas = document.getElementById('previewCanvas');
-  if (S.transparent) {
-    canvas.classList.add('is-transparent');
-    canvas.style.background = '';
-  } else {
-    canvas.classList.remove('is-transparent');
-    canvas.style.background = S.bgColor;
-  }
+function showEditor() {
+  document.getElementById('setupScreen').style.display = 'none';
+  const ed = document.getElementById('editorScreen');
+  ed.style.display = 'flex';
+  resizeCanvas();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -788,100 +556,100 @@ function handleFileInput(e) {
   e.target.value = '';
 }
 
-function handleDragOver(e) {
+function handleSetupDrop(e) {
   e.preventDefault();
-  document.getElementById('dropZone').classList.add('drag-over');
-}
-function handleDragLeave() {
-  document.getElementById('dropZone').classList.remove('drag-over');
-}
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('dropZone').classList.remove('drag-over');
+  document.getElementById('setupDropZone').classList.remove('border-primary', 'bg-primary/5');
   const f = e.dataTransfer.files[0];
   if (f && /\.svg$/i.test(f.name)) loadFile(f);
 }
 
 function loadFile(file) {
   svgFilename = file.name;
-  document.getElementById('topbarFile').textContent = file.name;
+
+  // Update setup badge
+  document.getElementById('setupFilename').textContent = file.name;
+  document.getElementById('setupFileBadge').classList.remove('hidden');
+  document.getElementById('continueBtn').disabled = false;
+
+  // Update editor navbar
+  document.getElementById('editorFilename').textContent = file.name;
+
   const reader = new FileReader();
   reader.onload = e => {
     initSVG(e.target.result);
-    document.getElementById('downloadBtn').disabled = false;
     updateCode();
   };
   reader.readAsText(file);
 }
 
 // ────────────────────────────────────────────────────────────
-// SVG init
+// SVG
 // ────────────────────────────────────────────────────────────
 function initSVG(svgText) {
   const canvas = document.getElementById('previewCanvas');
-
-  const dz = document.getElementById('dropZone');
-  if (dz) dz.remove();
-
-  const old = canvas.querySelector('svg');
+  const old    = canvas.querySelector('svg');
   if (old) old.remove();
 
   const doc   = new DOMParser().parseFromString(svgText, 'image/svg+xml');
   const svgEl = doc.querySelector('svg');
   if (!svgEl) return;
 
-  sizeCanvas(canvas, svgEl);
   applyBg();
   canvas.appendChild(svgEl);
+  resizeCanvas();
 
-  const SHAPE_SEL = 'path, polygon, polyline, circle, ellipse, rect, line';
-  animParts = [...svgEl.querySelectorAll(SHAPE_SEL)].map(el => {
-    const cs     = window.getComputedStyle(el);
-    const fillOp = parseFloat(cs.fillOpacity ?? '1');
-    const rgba   = parseCSSColor(cs.fill);
-    const len    = pathLength(el);
-    return { el, pathLen: len, fillRGBA: rgba, fillOp, hasFill: !!rgba && rgba[3] > 0 };
-  }).filter(p => p.pathLen > 0);
+  animParts = [...svgEl.querySelectorAll('path, polygon, polyline, circle, ellipse, rect, line')]
+    .map(el => {
+      const cs     = window.getComputedStyle(el);
+      const fillOp = parseFloat(cs.fillOpacity ?? '1');
+      const rgba   = parseCSSColor(cs.fill);
+      const len    = pathLength(el);
+      return { el, pathLen: len, fillRGBA: rgba, fillOp, hasFill: !!rgba && rgba[3] > 0 };
+    })
+    .filter(p => p.pathLen > 0);
 
-  document.getElementById('previewControls').style.display = 'flex';
   playAnimation();
 }
 
-function sizeCanvas(canvas, svgEl) {
-  const parent = canvas.parentElement;
-  const maxW   = Math.min(580, parent.clientWidth  - 48);
-  const maxH   = Math.min(460, parent.clientHeight - 80);
-  let w = maxW, h = Math.round(maxW * 9 / 16);
+function resizeCanvas() {
+  const canvas = document.getElementById('previewCanvas');
+  const area   = document.getElementById('previewArea');
+  if (!area) return;
 
-  const vb = svgEl.getAttribute('viewBox');
-  if (vb) {
-    const p  = vb.trim().split(/[\s,]+/);
-    if (p.length >= 4) {
-      const ar = parseFloat(p[2]) / parseFloat(p[3]);
-      w = maxW; h = Math.round(w / ar);
-      if (h > maxH) { h = maxH; w = Math.round(h * ar); }
-    }
+  const maxW = area.clientWidth  - 56;
+  const maxH = area.clientHeight - 80;
+  let w, h;
+
+  if (S.aspectRatio === '16:9') {
+    w = maxW; h = Math.round(w * 9 / 16);
+    if (h > maxH) { h = maxH; w = Math.round(h * 16 / 9); }
+  } else if (S.aspectRatio === '9:16') {
+    h = maxH; w = Math.round(h * 9 / 16);
+    if (w > maxW) { w = maxW; h = Math.round(w * 16 / 9); }
+  } else {
+    w = h = Math.min(maxW, maxH);
   }
 
   canvas.style.width  = w + 'px';
   canvas.style.height = h + 'px';
-  svgEl.setAttribute('width',  w);
-  svgEl.setAttribute('height', h);
-  svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  svgEl.style.width  = '100%';
-  svgEl.style.height = '100%';
+
+  const svgEl = canvas.querySelector('svg');
+  if (svgEl) {
+    svgEl.setAttribute('width',  w);
+    svgEl.setAttribute('height', h);
+    svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svgEl.style.width  = '100%';
+    svgEl.style.height = '100%';
+  }
 }
 
 function pathLength(el) {
   try {
     if (typeof el.getTotalLength === 'function') return el.getTotalLength();
-    if (el.tagName === 'rect') {
-      return 2 * (parseFloat(el.getAttribute('width') || 0) +
-                  parseFloat(el.getAttribute('height') || 0));
-    }
-    if (el.tagName === 'circle') {
+    if (el.tagName === 'rect')
+      return 2 * (parseFloat(el.getAttribute('width') || 0) + parseFloat(el.getAttribute('height') || 0));
+    if (el.tagName === 'circle')
       return 2 * Math.PI * parseFloat(el.getAttribute('r') || 0);
-    }
     if (el.tagName === 'ellipse') {
       const rx = parseFloat(el.getAttribute('rx') || 0);
       const ry = parseFloat(el.getAttribute('ry') || 0);
@@ -891,31 +659,45 @@ function pathLength(el) {
   return 0;
 }
 
-// Parse computed CSS color → [r,g,b,a] or null
 function parseCSSColor(s) {
   if (!s || s === 'none' || s === 'transparent') return null;
   const m = s.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
   if (m) {
     const a = m[4] !== undefined ? +m[4] : 1;
-    if (a === 0) return null;
-    return [+m[1], +m[2], +m[3], a];
+    return a === 0 ? null : [+m[1], +m[2], +m[3], a];
   }
   return null;
 }
 
 // ────────────────────────────────────────────────────────────
-// Animation engine
+// Aspect ratio
 // ────────────────────────────────────────────────────────────
-function setStatus(text, state) {  // state: 'active' | 'done' | ''
-  const pill = document.getElementById('statusPill');
-  const span = document.getElementById('statusText');
-  if (!pill) return;
-  pill.classList.toggle('active', state === 'active');
-  pill.classList.toggle('done',   state === 'done');
-  span.textContent = text;
+function setAspectRatio(ar) {
+  S.aspectRatio = ar;
+  // Sync all three radio groups
+  ['setupAR', 'editorAR', 'expAR'].forEach(name => {
+    const el = document.querySelector(`input[name="${name}"][value="${ar}"]`);
+    if (el) el.checked = true;
+  });
+  resizeCanvas();
+  updateCode();
 }
 
-function ease(t) { return t < 0.5 ? 2*t*t : -1 + (4-2*t)*t; }
+// ────────────────────────────────────────────────────────────
+// Animation engine
+// ────────────────────────────────────────────────────────────
+function setStatus(text, state) {
+  const badge = document.getElementById('statusBadge');
+  const dot   = document.getElementById('statusDot');
+  const span  = document.getElementById('statusText');
+  if (!badge) return;
+  span.textContent  = text;
+  dot.style.opacity = state ? '1' : '0';
+  badge.className   = 'badge gap-2 ' +
+    (state === 'active' ? 'badge-primary' : state === 'done' ? 'badge-success' : 'badge-ghost');
+}
+
+function easeIO(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
 function replayAnimation() {
   if (animFrame) cancelAnimationFrame(animFrame);
@@ -924,13 +706,11 @@ function replayAnimation() {
 
 function playAnimation() {
   if (!animParts.length) return;
+  const N      = animParts.length;
+  const drawMs = S.drawTime * 1000;
+  const lag    = S.lagRatio;
+  const single = N > 1 ? drawMs / (1 + lag * (N - 1)) : drawMs;
 
-  const N       = animParts.length;
-  const drawMs  = S.drawTime * 1000;
-  const lag     = S.lagRatio;
-  const singleMs = N > 1 ? drawMs / (1 + lag * (N - 1)) : drawMs;
-
-  // Reset to stroke-only
   animParts.forEach(p => {
     p.el.style.fill             = 'none';
     p.el.style.fillOpacity      = '0';
@@ -947,16 +727,15 @@ function playAnimation() {
   function phase1(now) {
     const el = now - t0;
     animParts.forEach((p, i) => {
-      const start = i * lag * singleMs;
+      const start = i * lag * single;
       if (el < start) return;
-      const prog = Math.min(1, (el - start) / singleMs);
-      p.el.style.strokeDashoffset = p.pathLen * (1 - ease(prog));
+      const prog = Math.min(1, (el - start) / single);
+      p.el.style.strokeDashoffset = p.pathLen * (1 - easeIO(prog));
       p.el.style.stroke      = S.strokeColor;
       p.el.style.strokeWidth = S.strokeWidth;
     });
 
     if (el < drawMs) { animFrame = requestAnimationFrame(phase1); return; }
-
     animParts.forEach(p => { p.el.style.strokeDashoffset = 0; });
     setStatus('filling…', 'active');
 
@@ -967,67 +746,181 @@ function playAnimation() {
     function phase2(now2) {
       const el2 = now2 - t1 - waitMs;
       if (el2 < 0) { animFrame = requestAnimationFrame(phase2); return; }
-
       const prog  = Math.min(1, el2 / fillMs);
-      const eased = ease(prog);
-
+      const eased = easeIO(prog);
       animParts.forEach(p => {
         if (p.hasFill && p.fillRGBA) {
           const [r, g, b, a] = p.fillRGBA;
-          p.el.style.fill        = `rgba(${r},${g},${b},${a * eased})`;
+          p.el.style.fill        = `rgba(${r},${g},${b},${a*eased})`;
           p.el.style.fillOpacity = (p.fillOp * eased).toString();
         }
         p.el.style.strokeOpacity = (1 - eased).toString();
       });
-
       if (prog < 1) { animFrame = requestAnimationFrame(phase2); return; }
       setStatus('done', 'done');
     }
-
     animFrame = requestAnimationFrame(phase2);
   }
-
   animFrame = requestAnimationFrame(phase1);
+}
+
+// ────────────────────────────────────────────────────────────
+// Sliders + reset dots
+// ────────────────────────────────────────────────────────────
+function onRange(key, value, fmt) {
+  S[key] = value;
+  const el = document.getElementById('v-' + key);
+  if (el) el.textContent = fmt(value);
+  updateResetDot(key);
+  updateCode();
+}
+
+function resetSlider(key) {
+  if (S[key] === DEFAULTS[key]) return;
+  const slider = document.getElementById(key);
+  if (!slider) return;
+  slider.value = DEFAULTS[key];
+  slider.dispatchEvent(new Event('input'));
+}
+
+function updateResetDot(key) {
+  const dot = document.getElementById('rd-' + key);
+  if (!dot) return;
+  dot.classList.toggle('changed', S[key] !== DEFAULTS[key]);
+}
+
+function updateAllResetDots() {
+  ['drawTime','lagRatio','fillTime','waitBetween','waitEnd','strokeWidth','logoWidth'].forEach(updateResetDot);
+}
+
+// ────────────────────────────────────────────────────────────
+// Color picker
+// ────────────────────────────────────────────────────────────
+function onColorChange(target, value) {
+  const hex = value.startsWith('#') ? value.toUpperCase() : ('#' + value).toUpperCase();
+  if (target === 'stroke') {
+    S.strokeColor = hex;
+    document.getElementById('strokeColorHex').value           = hex;
+    document.getElementById('strokeColorNative').value        = hex.toLowerCase();
+    document.getElementById('strokeSwatch').style.background  = hex;
+    // Live-update stroke on SVG parts
+    animParts.forEach(p => { p.el.style.stroke = hex; });
+  } else {
+    S.bgColor = hex;
+    document.getElementById('bgColorHex').value          = hex;
+    document.getElementById('bgColorNative').value       = hex.toLowerCase();
+    document.getElementById('bgSwatch').style.background = hex;
+    // Deselect all presets
+    ['transparent','dark','black','white'].forEach(id => {
+      document.getElementById('bg-btn-' + id)?.classList.remove('btn-active');
+    });
+    applyBg();
+  }
+  updateCode();
+}
+
+function onColorText(target, value) {
+  if (/^#[0-9a-fA-F]{6}$/.test(value)) onColorChange(target, value);
+}
+
+// ────────────────────────────────────────────────────────────
+// Background
+// ────────────────────────────────────────────────────────────
+function setBg(value) {
+  S.transparent = value === 'transparent';
+  if (!S.transparent) {
+    S.bgColor = value;
+    document.getElementById('bgColorHex').value          = value.toUpperCase();
+    document.getElementById('bgColorNative').value       = value;
+    document.getElementById('bgSwatch').style.background = value;
+  }
+
+  // Preset button active state
+  const map = { transparent: 'transparent', '#0d0d0d': 'dark', '#000000': 'black', '#ffffff': 'white' };
+  ['transparent','dark','black','white'].forEach(id => {
+    document.getElementById('bg-btn-' + id)?.classList.remove('btn-active');
+  });
+  const activeId = map[value];
+  if (activeId) document.getElementById('bg-btn-' + activeId)?.classList.add('btn-active');
+
+  document.getElementById('bgCustomRow').style.display     = S.transparent ? 'none' : '';
+  document.getElementById('transparentInfo').classList.toggle('hidden', !S.transparent);
+
+  if (S.transparent) {
+    S.format = 'mov';
+    const movInput = document.getElementById('fmtMov');
+    if (movInput) movInput.checked = true;
+  }
+
+  applyBg();
+  updateCode();
+}
+
+function applyBg() {
+  const canvas = document.getElementById('previewCanvas');
+  if (!canvas) return;
+  if (S.transparent) {
+    canvas.classList.add('transparent-bg');
+    canvas.style.background = '';
+  } else {
+    canvas.classList.remove('transparent-bg');
+    canvas.style.background = S.bgColor;
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Tabs
+// ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  ['anim','stroke','bg'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+    document.getElementById('tab-' + t + '-btn').classList.toggle('tab-active', t === name);
+  });
 }
 
 // ────────────────────────────────────────────────────────────
 // Code generation
 // ────────────────────────────────────────────────────────────
+function getResolution() {
+  const q = S.quality;
+  if (S.aspectRatio === '16:9') return [Math.round(q * 16/9), q];
+  if (S.aspectRatio === '9:16') return [q, Math.round(q * 16/9)];
+  return [q, q]; // 1:1
+}
+
 function updateCode() {
-  document.getElementById('codeOut').innerHTML = tokenize(generateCode());
+  const el = document.getElementById('codeOut');
+  if (el) el.innerHTML = tokenize(generateCode());
 }
 
 function generateCode() {
-  const [pw, ph] = S.resolution.split('x').map(Number);
-  const qual     = ph >= 2160 ? 'k' : ph >= 1080 ? 'h' : 'l';
-  const fmtFlag  = S.format !== 'mp4' ? ` --format ${S.format}` : '';
-  const transFlag = S.transparent ? ' --transparent' : '';
-
-  const bgLine = S.transparent
-    ? `config.transparent  = True`
+  const [pw, ph]   = getResolution();
+  const qual       = ph >= 2160 ? 'k' : ph >= 1080 ? 'h' : 'm';
+  const transFlag  = S.transparent ? ' --transparent' : '';
+  const fmtFlag    = S.format !== 'mp4' ? ` --format ${S.format}` : '';
+  const bgLine     = S.transparent
+    ? 'config.transparent = True'
     : `config.background_color = "${S.bgColor.toUpperCase()}"`;
-
-  const renderCmd = `manim -pq${qual}${transFlag}${fmtFlag} logo_animation.py LogoAnimation`;
 
   return `from manim import *
 
-# Render: ${renderCmd}
+# Render: manim -pq${qual}${transFlag}${fmtFlag} logo_animation.py LogoAnimation
 
-# ── Render config ────────────────────────────────────────────
+# ── Render config ─────────────────────────────────────────────
 config.pixel_width  = ${pw}
 config.pixel_height = ${ph}
 config.frame_rate   = ${S.fps}
 ${bgLine}
 
-# ── Parameters ───────────────────────────────────────────────
+# ── Parameters ────────────────────────────────────────────────
 SVG_FILE     = "${svgFilename}"
 LOGO_WIDTH   = ${S.logoWidth.toFixed(1)}      # Manim scene units
 STROKE_COLOR = "${S.strokeColor.toUpperCase()}"
 STROKE_WIDTH = ${S.strokeWidth}
 
-DRAW_TIME    = ${S.drawTime.toFixed(1)}      # seconds — phase 1 (stroke draw)
-LAG_RATIO    = ${S.lagRatio.toFixed(2)}      # overlap between path animations
-FILL_TIME    = ${S.fillTime.toFixed(1)}      # seconds — phase 2 (fill reveal)
+DRAW_TIME    = ${S.drawTime.toFixed(1)}      # seconds — phase 1
+LAG_RATIO    = ${S.lagRatio.toFixed(2)}      # stagger between paths
+FILL_TIME    = ${S.fillTime.toFixed(1)}      # seconds — phase 2
 WAIT_BETWEEN = ${S.waitBetween.toFixed(1)}      # pause between phases
 WAIT_END     = ${S.waitEnd.toFixed(1)}      # hold at end
 
@@ -1050,7 +943,7 @@ class LogoAnimation(Scene):
         )
         self.wait(WAIT_BETWEEN)
 
-        # Phase 2 — reveal fill colours, fade out strokes
+        # Phase 2 — reveal colours, fade strokes
         self.play(
             *[
                 m.animate.set_fill(c, opacity=o).set_stroke(opacity=0)
@@ -1062,61 +955,46 @@ class LogoAnimation(Scene):
 }
 
 // ────────────────────────────────────────────────────────────
-// Tokenizer for syntax highlighting
+// Syntax tokenizer
 // ────────────────────────────────────────────────────────────
-const KW  = new Set(['from','import','class','def','for','in','if','else','return','self','True','False','None','zip','not','and','or','lambda','while','with','as','pass']);
-const CLS = new Set(['Scene','SVGMobject','AnimationGroup','Create','WHITE','RED','BLUE','GREEN','PURPLE','YELLOW','ORANGE','BLACK','config']);
-const FN  = new Set(['construct','set_fill','set_stroke','scale_to_fit_width','family_members_with_points','get_fill_color','get_fill_opacity','play','wait','animate','zip','range','len','print']);
+const KW  = new Set(['from','import','class','def','for','in','if','else','return','self','True','False','None','zip','not','and','or','lambda','while','with','as']);
+const CLS = new Set(['Scene','SVGMobject','AnimationGroup','Create','config']);
+const FN  = new Set(['construct','set_fill','set_stroke','scale_to_fit_width','family_members_with_points','get_fill_color','get_fill_opacity','play','wait','animate','zip','range']);
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function tokenize(src) {
   let out = '', i = 0;
-
   while (i < src.length) {
     const ch = src[i];
-
     if (ch === '#') {
-      let j = i;
-      while (j < src.length && src[j] !== '\n') j++;
-      out += `<span class="cm">${esc(src.slice(i, j))}</span>`;
-      i = j; continue;
+      let j = i; while (j < src.length && src[j] !== '\n') j++;
+      out += `<span class="t-cm">${esc(src.slice(i,j))}</span>`; i = j; continue;
     }
-
     if (ch === '"' || ch === "'") {
-      let j = i + 1;
+      let j = i+1;
       while (j < src.length) {
-        if (src[j] === '\\') { j += 2; continue; }
-        if (src[j] === ch)   { j++;    break;     }
+        if (src[j] === '\\') { j+=2; continue; }
+        if (src[j] === ch)   { j++;  break;    }
         j++;
       }
-      out += `<span class="str">${esc(src.slice(i, j))}</span>`;
-      i = j; continue;
+      out += `<span class="t-str">${esc(src.slice(i,j))}</span>`; i = j; continue;
     }
-
     if (/\d/.test(ch)) {
-      let j = i;
-      while (j < src.length && /[\d.]/.test(src[j])) j++;
-      out += `<span class="num">${esc(src.slice(i, j))}</span>`;
-      i = j; continue;
+      let j = i; while (j < src.length && /[\d.]/.test(src[j])) j++;
+      out += `<span class="t-num">${esc(src.slice(i,j))}</span>`; i = j; continue;
     }
-
     if (/[a-zA-Z_]/.test(ch)) {
-      let j = i;
-      while (j < src.length && /\w/.test(src[j])) j++;
-      const w = src.slice(i, j);
-      if      (KW.has(w))  out += `<span class="kw">${esc(w)}</span>`;
-      else if (CLS.has(w)) out += `<span class="cls">${esc(w)}</span>`;
-      else if (FN.has(w))  out += `<span class="fn">${esc(w)}</span>`;
+      let j = i; while (j < src.length && /\w/.test(src[j])) j++;
+      const w = src.slice(i,j);
+      if      (KW.has(w))  out += `<span class="t-kw">${esc(w)}</span>`;
+      else if (CLS.has(w)) out += `<span class="t-cls">${esc(w)}</span>`;
+      else if (FN.has(w))  out += `<span class="t-fn">${esc(w)}</span>`;
       else                 out += esc(w);
       i = j; continue;
     }
-
     out += esc(ch); i++;
   }
-
   return out;
 }
 
@@ -1124,8 +1002,7 @@ function tokenize(src) {
 // Download
 // ────────────────────────────────────────────────────────────
 function downloadCode() {
-  const code = generateCode();
-  const blob = new Blob([code], { type: 'text/plain' });
+  const blob = new Blob([generateCode()], { type: 'text/plain' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
@@ -1135,14 +1012,12 @@ function downloadCode() {
 }
 
 // ────────────────────────────────────────────────────────────
-// Code panel toggle
+// Init — apply defaults that need explicit DOM setup
 // ────────────────────────────────────────────────────────────
-function toggleCode() {
-  document.getElementById('codePanel').classList.toggle('open');
-}
-
-// Init
+setBg('transparent');   // default: transparent
 updateCode();
+updateAllResetDots();
+window.addEventListener('resize', resizeCanvas);
 </script>
 </body>
 </html>
