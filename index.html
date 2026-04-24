@@ -182,7 +182,19 @@
       </div>
 
       <!-- Controls -->
-      <div class="flex items-center gap-3 z-10">
+      <div class="flex items-center gap-3 z-10 flex-wrap justify-center">
+        <!-- Size chooser -->
+        <div class="join join-sm">
+          <input type="radio" name="previewQuality" class="join-item btn btn-xs"
+                 aria-label="720p" value="720" onchange="setQuality(720)">
+          <input type="radio" name="previewQuality" class="join-item btn btn-xs"
+                 aria-label="1080p" value="1080" onchange="setQuality(1080)">
+          <input type="radio" name="previewQuality" class="join-item btn btn-xs"
+                 aria-label="4K" value="2160" onchange="setQuality(2160)" checked>
+        </div>
+
+        <div class="w-px h-4 bg-base-content/20"></div>
+
         <button class="btn btn-sm btn-ghost gap-2" onclick="replayAnimation()">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M1 4v6h6M23 20v-6h-6"/>
@@ -405,11 +417,11 @@
       <p class="text-xs text-base-content/40 uppercase tracking-widest font-bold mb-2">Quality</p>
       <div class="join w-full">
         <input type="radio" name="expQuality" class="join-item btn flex-1"
-               aria-label="720p" value="720" onchange="S.quality=720; updateCode()">
+               aria-label="720p" value="720" onchange="setQuality(720)">
         <input type="radio" name="expQuality" class="join-item btn flex-1"
-               aria-label="1080p" value="1080" onchange="S.quality=1080; updateCode()">
+               aria-label="1080p" value="1080" onchange="setQuality(1080)">
         <input type="radio" name="expQuality" class="join-item btn flex-1"
-               aria-label="4K" value="2160" onchange="S.quality=2160; updateCode()" checked>
+               aria-label="4K" value="2160" onchange="setQuality(2160)" checked>
       </div>
     </div>
 
@@ -672,6 +684,15 @@ function parseCSSColor(s) {
 // ────────────────────────────────────────────────────────────
 // Aspect ratio
 // ────────────────────────────────────────────────────────────
+function setQuality(q) {
+  S.quality = q;
+  ['previewQuality', 'expQuality'].forEach(name => {
+    const el = document.querySelector(`input[name="${name}"][value="${q}"]`);
+    if (el) el.checked = true;
+  });
+  updateCode();
+}
+
 function setAspectRatio(ar) {
   S.aspectRatio = ar;
   // Sync all three radio groups
