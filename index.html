@@ -823,14 +823,14 @@ function onColorChange(target, value) {
     S.strokeColor = hex;
     document.getElementById('strokeColorHex').value           = hex;
     document.getElementById('strokeColorNative').value        = hex.toLowerCase();
-    document.getElementById('strokeSwatch').style.background  = hex;
+    document.getElementById('strokeSwatch').style.background  = `var(--swatch, ${hex})`;
     // Live-update stroke on SVG parts
     animParts.forEach(p => { p.el.style.stroke = hex; });
   } else {
     S.bgColor = hex;
     document.getElementById('bgColorHex').value          = hex;
     document.getElementById('bgColorNative').value       = hex.toLowerCase();
-    document.getElementById('bgSwatch').style.background = hex;
+    document.getElementById('bgSwatch').style.background = `var(--swatch, ${hex})`;
     // Deselect all presets
     ['transparent','dark','black','white'].forEach(id => {
       document.getElementById('bg-btn-' + id)?.classList.remove('btn-active');
@@ -853,7 +853,7 @@ function setBg(value) {
     S.bgColor = value;
     document.getElementById('bgColorHex').value          = value.toUpperCase();
     document.getElementById('bgColorNative').value       = value;
-    document.getElementById('bgSwatch').style.background = value;
+    document.getElementById('bgSwatch').style.background = `var(--swatch, ${value})`;
   }
 
   // Preset button active state
