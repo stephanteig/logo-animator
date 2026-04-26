@@ -1,43 +1,38 @@
 'use client';
 
-export default function TraceWordmark({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
-  const gradId = `tw-grad-${size}`;
+import Image from 'next/image';
+import { asset } from '../lib/asset';
+
+interface Props {
+  /** Pixel height of the rendered logo. Width follows the PNG aspect ratio. */
+  size?: number;
+  /**
+   * Tone of the surface this lives on. The source PNG has a black wordmark on
+   * transparent — fine on light surfaces. On dark we invert+hue-rotate so the
+   * wordmark goes white while the violet→pink gradient stays roughly itself.
+   */
+  tone?: 'light' | 'dark';
+}
+
+// trace_logo@4x.png is 924×364 (231.61 × 91.03 viewBox at 4×). Aspect ratio ≈ 2.539.
+const ASPECT = 924 / 364;
+
+export default function TraceWordmark({ size = 22, tone = 'dark' }: Props) {
+  const width = Math.round(size * ASPECT);
   return (
-    <div
+    <Image
+      src={asset('/assets/trace_logo@4x.png')}
+      alt="Trace"
+      width={width}
+      height={size}
+      priority
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        fontFamily: 'var(--font-geist-sans), system-ui',
-        fontSize: size,
-        fontWeight: 600,
-        color,
-        letterSpacing: -0.6,
-        lineHeight: 1,
+        height: size,
+        width,
+        // Invert + hue-rotate: black wordmark → white, gradient hues mostly preserved.
+        filter: tone === 'dark' ? 'invert(1) hue-rotate(180deg)' : undefined,
+        userSelect: 'none',
       }}
-    >
-      <span>tr</span>
-      <svg
-        width={size * 0.78}
-        height={size * 0.78}
-        viewBox="0 0 48 48"
-        style={{ margin: '0 -1px' }}
-      >
-        <defs>
-          <linearGradient id={gradId} x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#a78bfa" />
-            <stop offset="100%" stopColor="#ec4899" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M8 36 Q24 6, 40 36"
-          fill="none"
-          stroke={`url(#${gradId})`}
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-        <circle cx="40" cy="36" r="4.5" fill="#ec4899" />
-      </svg>
-      <span>ce</span>
-    </div>
+    />
   );
 }
