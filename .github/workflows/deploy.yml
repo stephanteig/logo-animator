@@ -15,15 +15,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js (static export)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      - name: Include legacy app at /legacy/
+        run: |
+          mkdir -p out/legacy
+          cp index.html out/legacy/index.html
+          cp test.html out/legacy/test.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -31,8 +50,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: ./out
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy
         id: deploy
         uses: actions/deploy-pages@v4
