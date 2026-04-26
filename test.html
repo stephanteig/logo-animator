@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trace — Test Suite</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.22/dist/full.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Fira Code', monospace; }
+  .pass { color: #22c55e; }
+  .fail { color: #ef4444; }
+  .skip { color: #6b7280; }
+  .suite-header { color: #a78bfa; font-weight: bold; margin-top: 1rem; }
+  #log { font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+</style>
+</head>
+<body class="bg-base-200 p-6">
+
+<div class="max-w-3xl mx-auto flex flex-col gap-4">
+
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight">Trace — Test Suite</h1>
+    <p class="text-base-content/40 text-sm mt-1">Open this file from the same folder as index.html</p>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="stats shadow bg-base-100">
+    <div class="stat">
+      <div class="stat-title">Passed</div>
+      <div class="stat-value text-success" id="count-pass">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Failed</div>
+      <div class="stat-value text-error" id="count-fail">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Total</div>
+      <div class="stat-value" id="count-total">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Result</div>
+      <div class="stat-value text-sm" id="result-label">—</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary w-full" onclick="runAll()">▶ Run All Tests</button>
+
+  <!-- Output -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body p-4">
+      <div id="log" class="text-base-content/70">Click "Run All Tests" to begin…</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Mini test framework
+// ─────────────────────────────────────────────────────────────
+let passed = 0, failed = 0, lines = [];
+
+function suite(name) {
+  lines.push(`\n<span class="suite-header">▸ ${name}</span>`);
+}
+
+function test(name, fn) {
+  try {
+    fn();
+    lines.push(`  <span class="pass">✓</span> ${name}`);
+    passed++;
+  } catch (e) {
+    lines.push(`  <span class="fail">✗</span> ${name}\n    <span class="fail">    → ${e.message}</span>`);
+    failed++;
+  }
+}
+
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg || 'Assertion failed');
+}
+function assertEqual(a, b) {
+  if (a !== b) throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+}
+function assertDeepEqual(a, b) {
+  if (JSON.stringify(a) !== JSON.stringify(b))
+    throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+}
+function assertContains(str, sub) {
+  if (!str.includes(sub)) throw new Error(`Expected string to contain: "${sub}"`);
+}
+function assertNotContains(str, sub) {
+  if (str.includes(sub)) throw new Error(`Expected string NOT to contain: "${sub}"`);
+}
+function assertNull(v) {
+  if (v !== null) throw new Error(`Expected null, got ${JSON.stringify(v)}`);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Pure functions under test (copied from index.html logic)
+// ─────────────────────────────────────────────────────────────
+
+function getResolution(quality, aspectRatio) {
+  const q = quality;
+  if (aspectRatio === '16:9') return [Math.round(q * 16 / 9), q];
+  if (aspectRatio === '9:16') return [q, Math.round(q * 16 / 9)];
+  return [q, q];
+}
+
+function parseCSSColor(s) {
+  if (!s || s === 'none' || s === 'transparent') return null;
+  const m = s.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (m) {
+    const a = m[4] !== undefined ? +m[4] : 1;
+    return a === 0 ? null : [+m[1], +m[2], +m[3], a];
+  }
+  return null;
+}
+
+function easeIO(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+
+const DEFAULTS = {
+  drawTime: 4, lagRatio: 0.5, fillTime: 1.2, waitBetween: 0.4, waitEnd: 1.5,
+  strokeColor: '#FFFFFF', strokeWidth: 1.5, bgColor: '#0d0d0d',
+  transparent: true, aspectRatio: '16:9', logoWidth: 4.0, quality: 2160, fps: 25, format: 'mov',
+};
+
+function generateCode(S, svgFilename) {
+  const [pw, ph] = getResolution(S.quality, S.aspectRatio);
+  const qual     = ph >= 2160 ? 'k' : ph >= 1080 ? 'h' : 'm';
+  const tranFlag = S.transparent ? ' --transparent' : '';
+  const fmtFlag  = S.format !== 'mp4' ? ` --format ${S.format}` : '';
+  const bgLine   = S.transparent
+    ? 'config.transparent = True'
+    : `config.background_color = "${S.bgColor.toUpperCase()}"`;
+
+  return `from manim import *
+
+# Render: manim -pq${qual}${tranFlag}${fmtFlag} logo_animation.py LogoAnimation
+
+config.pixel_width  = ${pw}
+config.pixel_height = ${ph}
+config.frame_rate   = ${S.fps}
+${bgLine}
+
+SVG_FILE     = "${svgFilename}"
+LOGO_WIDTH   = ${S.logoWidth.toFixed(1)}
+STROKE_COLOR = "${S.strokeColor.toUpperCase()}"
+STROKE_WIDTH = ${S.strokeWidth}
+
+DRAW_TIME    = ${S.drawTime.toFixed(1)}
+LAG_RATIO    = ${S.lagRatio.toFixed(2)}
+FILL_TIME    = ${S.fillTime.toFixed(1)}
+WAIT_BETWEEN = ${S.waitBetween.toFixed(1)}
+WAIT_END     = ${S.waitEnd.toFixed(1)}
+
+class LogoAnimation(Scene):
+    def construct(self):
+        svg = SVGMobject(SVG_FILE).scale_to_fit_width(LOGO_WIDTH)`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOM helpers — load the app in a hidden iframe and inspect it
+// ─────────────────────────────────────────────────────────────
+
+function loadApp() {
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById('app-frame');
+    if (existing) existing.remove();
+    const frame = document.createElement('iframe');
+    frame.id    = 'app-frame';
+    frame.src   = 'index.html';
+    frame.style.cssText = 'position:fixed;width:1280px;height:800px;top:-9999px;left:-9999px;';
+    document.body.appendChild(frame);
+    frame.onload  = () => resolve(frame);
+    frame.onerror = () => reject(new Error('Could not load index.html — make sure test.html is in the same folder'));
+    setTimeout(() => reject(new Error('iframe load timeout')), 5000);
+  });
+}
+
+function $$(frame, sel) { return frame.contentDocument.querySelector(sel); }
+
+function makeSVGFile(name = 'logo.svg') {
+  const svgText = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="40" fill="#3B82F6"/>
+    <rect x="10" y="10" width="80" height="80" fill="#EF4444" opacity="0.5"/>
+    <path d="M10 90 Q50 10 90 90" fill="none" stroke="#22C55E" stroke-width="3"/>
+  </svg>`;
+  return new File([svgText], name, { type: 'image/svg+xml' });
+}
+
+async function uploadSVG(frame) {
+  const win  = frame.contentWindow;
+  const file = makeSVGFile();
+  // Directly call loadFile() with the file object
+  win.loadFile(file);
+  await new Promise(r => setTimeout(r, 300));
+}
+
+async function goToEditor(frame) {
+  await uploadSVG(frame);
+  frame.contentWindow.showEditor();
+  await new Promise(r => setTimeout(r, 200));
+}
+
+// ─────────────────────────────────────────────────────────────
+// All test suites
+// ─────────────────────────────────────────────────────────────
+
+async function runAll() {
+  passed = 0; failed = 0; lines = [];
+  document.getElementById('log').innerHTML = 'Running…';
+  document.getElementById('count-pass').textContent = '—';
+  document.getElementById('count-fail').textContent = '—';
+  document.getElementById('count-total').textContent = '—';
+  document.getElementById('result-label').textContent = '—';
+
+  // ── Pure unit tests (no DOM needed) ──────────────────────
+  suite('getResolution()');
+  test('4K 16:9 → 3840×2160',  () => assertDeepEqual(getResolution(2160,'16:9'), [3840,2160]));
+  test('1080p 16:9 → 1920×1080',() => assertDeepEqual(getResolution(1080,'16:9'), [1920,1080]));
+  test('720p 16:9 → 1280×720',  () => assertDeepEqual(getResolution(720,'16:9'),  [1280,720]));
+  test('4K 9:16 → 2160×3840',   () => assertDeepEqual(getResolution(2160,'9:16'), [2160,3840]));
+  test('4K 1:1 → 2160×2160',    () => assertDeepEqual(getResolution(2160,'1:1'),  [2160,2160]));
+  test('1080p 1:1 → 1080×1080', () => assertDeepEqual(getResolution(1080,'1:1'),  [1080,1080]));
+
+  suite('parseCSSColor()');
+  test('"none" → null',                    () => assertNull(parseCSSColor('none')));
+  test('"transparent" → null',             () => assertNull(parseCSSColor('transparent')));
+  test('empty string → null',              () => assertNull(parseCSSColor('')));
+  test('rgb(255,128,0) → [255,128,0,1]',   () => assertDeepEqual(parseCSSColor('rgb(255,128,0)'),[255,128,0,1]));
+  test('rgba with full opacity',           () => assertDeepEqual(parseCSSColor('rgba(10,20,30,1)'),[10,20,30,1]));
+  test('rgba with partial opacity',        () => assertDeepEqual(parseCSSColor('rgba(10,20,30,0.5)'),[10,20,30,0.5]));
+  test('rgba(0,0,0,0) → null',             () => assertNull(parseCSSColor('rgba(0,0,0,0)')));
+
+  suite('easeIO()');
+  test('easeIO(0) === 0',    () => assertEqual(easeIO(0), 0));
+  test('easeIO(1) === 1',    () => assertEqual(easeIO(1), 1));
+  test('easeIO(0.5) === 0.5',() => assertEqual(easeIO(0.5), 0.5));
+  test('output always in [0,1]', () => {
+    for (let t = 0; t <= 1; t += 0.1)
+      assert(easeIO(t) >= 0 && easeIO(t) <= 1, `easeIO(${t}) out of range`);
+  });
+  test('is monotonically increasing', () => {
+    for (let t = 0.01; t <= 1; t += 0.01)
+      assert(easeIO(t) >= easeIO(parseFloat((t-0.01).toFixed(2))), `Not increasing at t=${t}`);
+  });
+
+  suite('DEFAULTS — sanity');
+  test('all keys present', () => {
+    const keys = ['drawTime','lagRatio','fillTime','waitBetween','waitEnd',
+                  'strokeColor','strokeWidth','bgColor','transparent',
+                  'aspectRatio','logoWidth','quality','fps','format'];
+    for (const k of keys) assert(k in DEFAULTS, `Missing: ${k}`);
+  });
+  test('default aspectRatio is 16:9', () => assertEqual(DEFAULTS.aspectRatio, '16:9'));
+  test('default quality is 2160',     () => assertEqual(DEFAULTS.quality, 2160));
+  test('default transparent is true', () => assertEqual(DEFAULTS.transparent, true));
+  test('default fps is 25',           () => assertEqual(DEFAULTS.fps, 25));
+  test('default format is mov',       () => assertEqual(DEFAULTS.format, 'mov'));
+
+  suite('generateCode() — structure');
+  test('starts with manim import', () =>
+    assertContains(generateCode(DEFAULTS,'logo.svg'), 'from manim import *'));
+  test('contains LogoAnimation class', () =>
+    assertContains(generateCode(DEFAULTS,'logo.svg'), 'class LogoAnimation(Scene):'));
+  test('includes svg filename', () =>
+    assertContains(generateCode(DEFAULTS,'mylogo.svg'), '"mylogo.svg"'));
+  test('-pqk for 4K', () =>
+    assertContains(generateCode({...DEFAULTS,quality:2160},'a.svg'), '-pqk'));
+  test('-pqh for 1080p', () =>
+    assertContains(generateCode({...DEFAULTS,quality:1080},'a.svg'), '-pqh'));
+  test('-pqm for 720p', () =>
+    assertContains(generateCode({...DEFAULTS,quality:720},'a.svg'), '-pqm'));
+
+  suite('generateCode() — transparent background');
+  test('uses config.transparent = True', () =>
+    assertContains(generateCode({...DEFAULTS,transparent:true},'a.svg'), 'config.transparent = True'));
+  test('adds --transparent to CLI', () =>
+    assertContains(generateCode({...DEFAULTS,transparent:true},'a.svg'), '--transparent'));
+  test('does not include background_color', () =>
+    assertNotContains(generateCode({...DEFAULTS,transparent:true},'a.svg'), 'background_color'));
+
+  suite('generateCode() — solid background');
+  const solidS = {...DEFAULTS, transparent:false, bgColor:'#1a1a2e', format:'mp4'};
+  test('uses background_color with correct uppercase hex', () =>
+    assertContains(generateCode(solidS,'a.svg'), 'config.background_color = "#1A1A2E"'));
+  test('hex is always uppercase', () =>
+    assertContains(generateCode({...solidS,bgColor:'#aabbcc'},'a.svg'), '#AABBCC'));
+  test('no --transparent flag', () =>
+    assertNotContains(generateCode(solidS,'a.svg'), '--transparent'));
+
+  suite('generateCode() — format flags');
+  test('mp4 → no --format flag', () =>
+    assertNotContains(generateCode({...DEFAULTS,format:'mp4',transparent:false,bgColor:'#000'},'a.svg'), '--format'));
+  test('gif → --format gif', () =>
+    assertContains(generateCode({...DEFAULTS,format:'gif',transparent:false,bgColor:'#000'},'a.svg'), '--format gif'));
+  test('webm → --format webm', () =>
+    assertContains(generateCode({...DEFAULTS,format:'webm',transparent:false,bgColor:'#000'},'a.svg'), '--format webm'));
+  test('mov → --format mov', () =>
+    assertContains(generateCode({...DEFAULTS,format:'mov',transparent:false,bgColor:'#000'},'a.svg'), '--format mov'));
+
+  suite('generateCode() — animation parameters');
+  test('reflects custom drawTime', () =>
+    assertContains(generateCode({...DEFAULTS,drawTime:7.5},'a.svg'), 'DRAW_TIME    = 7.5'));
+  test('lagRatio has 2 decimal places', () =>
+    assertContains(generateCode({...DEFAULTS,lagRatio:0.3},'a.svg'), 'LAG_RATIO    = 0.30'));
+  test('reflects custom fps', () =>
+    assertContains(generateCode({...DEFAULTS,fps:60},'a.svg'), 'frame_rate   = 60'));
+  test('strokeColor uppercased', () =>
+    assertContains(generateCode({...DEFAULTS,strokeColor:'#ff5500'},'a.svg'), '"#FF5500"'));
+  test('logoWidth has 1 decimal place', () =>
+    assertContains(generateCode({...DEFAULTS,logoWidth:6.5},'a.svg'), 'LOGO_WIDTH   = 6.5'));
+
+  // ── DOM integration tests (require index.html in same folder) ──
+  let frame;
+  try {
+    frame = await loadApp();
+  } catch (e) {
+    suite('DOM tests (SKIPPED)');
+    lines.push(`  <span class="skip">⚠ ${e.message}</span>`);
+    render(); return;
+  }
+
+  const win = frame.contentWindow;
+
+  suite('Setup screen — initial state');
+  test('setup screen is visible', () =>
+    assert($$(frame,'#setupScreen').style.display !== 'none' || !$$(frame,'#setupScreen').style.display, 'setupScreen hidden'));
+  test('editor screen is hidden', () =>
+    assert($$(frame,'#editorScreen').style.display === 'none', 'editorScreen visible on load'));
+  test('Continue button is disabled', () =>
+    assert($$(frame,'#continueBtn').disabled, 'continueBtn not disabled'));
+  test('file badge is hidden', () =>
+    assert($$(frame,'#setupFileBadge').classList.contains('hidden'), 'badge visible before upload'));
+
+  suite('Setup screen — after SVG upload');
+  await uploadSVG(frame);
+  await new Promise(r => setTimeout(r, 100));
+  test('filename badge is shown', () =>
+    assert(!$$(frame,'#setupFileBadge').classList.contains('hidden'), 'badge still hidden'));
+  test('badge shows filename', () =>
+    assertEqual($$(frame,'#setupFilename').textContent, 'logo.svg'));
+  test('Continue button is enabled', () =>
+    assert(!$$(frame,'#continueBtn').disabled, 'continueBtn still disabled'));
+
+  suite('Editor screen');
+  frame.contentWindow.showEditor();
+  await new Promise(r => setTimeout(r, 200));
+  test('editor screen is now visible', () =>
+    assertEqual($$(frame,'#editorScreen').style.display, 'flex'));
+  test('setup screen is now hidden', () =>
+    assertEqual($$(frame,'#setupScreen').style.display, 'none'));
+  test('navbar shows filename', () =>
+    assertEqual($$(frame,'#editorFilename').textContent, 'logo.svg'));
+  test('preview canvas exists', () =>
+    assert(!!$$(frame,'#previewCanvas'), 'previewCanvas missing'));
+  test('SVG is injected into canvas', () =>
+    assert(!!$$(frame,'#previewCanvas svg'), 'no svg inside canvas'));
+
+  suite('Settings tabs');
+  test('Animation tab visible by default', () =>
+    assert(!$$(frame,'#tab-anim').classList.contains('hidden'), 'tab-anim hidden'));
+  test('Stroke tab hidden by default', () =>
+    assert($$(frame,'#tab-stroke').classList.contains('hidden'), 'tab-stroke visible'));
+  test('BG tab hidden by default', () =>
+    assert($$(frame,'#tab-bg').classList.contains('hidden'), 'tab-bg visible'));
+
+  win.switchTab('stroke');
+  await new Promise(r => setTimeout(r, 50));
+  test('switching to Stroke shows stroke tab', () =>
+    assert(!$$(frame,'#tab-stroke').classList.contains('hidden'), 'tab-stroke still hidden'));
+  test('switching to Stroke hides anim tab', () =>
+    assert($$(frame,'#tab-anim').classList.contains('hidden'), 'tab-anim still visible'));
+
+  win.switchTab('bg');
+  await new Promise(r => setTimeout(r, 50));
+  test('switching to BG shows bg tab', () =>
+    assert(!$$(frame,'#tab-bg').classList.contains('hidden'), 'tab-bg still hidden'));
+
+  win.switchTab('anim');
+  await new Promise(r => setTimeout(r, 50));
+  test('switching back to Anim works', () =>
+    assert(!$$(frame,'#tab-anim').classList.contains('hidden'), 'tab-anim not restored'));
+
+  suite('Animation sliders — defaults');
+  test('drawTime default label is "4.0 s"',   () => assertEqual($$(frame,'#v-drawTime').textContent,    '4.0 s'));
+  test('lagRatio default label is "0.50"',    () => assertEqual($$(frame,'#v-lagRatio').textContent,    '0.50'));
+  test('fillTime default label is "1.2 s"',   () => assertEqual($$(frame,'#v-fillTime').textContent,    '1.2 s'));
+  test('waitBetween default is "0.4 s"',      () => assertEqual($$(frame,'#v-waitBetween').textContent, '0.4 s'));
+  test('waitEnd default is "1.5 s"',          () => assertEqual($$(frame,'#v-waitEnd').textContent,     '1.5 s'));
+
+  suite('Animation sliders — reset dots');
+  for (const id of ['drawTime','lagRatio','fillTime','waitBetween','waitEnd']) {
+    test(`${id} reset dot inactive at default`, () =>
+      assert(!$$(frame,`#rd-${id}`).classList.contains('changed'), `rd-${id} has changed class at default`));
+  }
+
+  // Move drawTime slider and check dot
+  win.onRange('drawTime', 10, v => v.toFixed(1)+' s');
+  await new Promise(r => setTimeout(r, 50));
+  test('drawTime reset dot activates after change', () =>
+    assert($$(frame,'#rd-drawTime').classList.contains('changed'), 'reset dot not active after change'));
+
+  win.resetSlider('drawTime');
+  await new Promise(r => setTimeout(r, 50));
+  test('drawTime reset dot deactivates after reset', () =>
+    assert(!$$(frame,'#rd-drawTime').classList.contains('changed'), 'reset dot still active after reset'));
+  test('drawTime label returns to 4.0 s after reset', () =>
+    assertEqual($$(frame,'#v-drawTime').textContent, '4.0 s'));
+
+  suite('Stroke settings');
+  test('default stroke hex is #FFFFFF', () =>
+    assertEqual($$(frame,'#strokeColorHex').value, '#FFFFFF'));
+  test('default stroke width label is 1.5', () =>
+    assertEqual($$(frame,'#v-strokeWidth').textContent, '1.5'));
+
+  win.onColorChange('stroke', '#FFD700');
+  await new Promise(r => setTimeout(r, 50));
+  test('color change updates hex input', () =>
+    assertEqual($$(frame,'#strokeColorHex').value, '#FFD700'));
+  test('color change updates swatch background', () =>
+    assertContains($$(frame,'#strokeSwatch').style.background.toUpperCase(), 'FFD700'));
+
+  suite('Background settings');
+  test('default background is transparent', () =>
+    assert($$(frame,'#previewCanvas').classList.contains('transparent-bg'), 'not transparent by default'));
+  test('transparent info banner is shown', () =>
+    assert(!$$(frame,'#transparentInfo').classList.contains('hidden'), 'transparentInfo hidden'));
+  test('custom color row is hidden when transparent', () =>
+    assertEqual($$(frame,'#bgCustomRow').style.display, 'none'));
+
+  win.setBg('#000000');
+  await new Promise(r => setTimeout(r, 50));
+  test('setting solid bg removes transparent-bg class', () =>
+    assert(!$$(frame,'#previewCanvas').classList.contains('transparent-bg'), 'transparent-bg class still present'));
+  test('custom color row appears for solid bg', () =>
+    assert($$(frame,'#bgCustomRow').style.display !== 'none', 'bgCustomRow still hidden'));
+  test('transparent info banner is hidden for solid bg', () =>
+    assert($$(frame,'#transparentInfo').classList.contains('hidden'), 'transparentInfo still visible'));
+
+  suite('Aspect ratio');
+  win.setAspectRatio('1:1');
+  await new Promise(r => setTimeout(r, 100));
+  const w1 = parseInt($$(frame,'#previewCanvas').style.width);
+  const h1 = parseInt($$(frame,'#previewCanvas').style.height);
+  test('1:1 canvas is square', () => assertEqual(w1, h1));
+
+  win.setAspectRatio('9:16');
+  await new Promise(r => setTimeout(r, 100));
+  const w2 = parseInt($$(frame,'#previewCanvas').style.width);
+  const h2 = parseInt($$(frame,'#previewCanvas').style.height);
+  test('9:16 canvas is taller than wide', () => assert(h2 > w2, `h=${h2} not > w=${w2}`));
+
+  win.setAspectRatio('16:9');
+  await new Promise(r => setTimeout(r, 100));
+  const w3 = parseInt($$(frame,'#previewCanvas').style.width);
+  const h3 = parseInt($$(frame,'#previewCanvas').style.height);
+  test('16:9 canvas is wider than tall', () => assert(w3 > h3, `w=${w3} not > h=${h3}`));
+
+  suite('Code generation — DOM state');
+  win.setAspectRatio('16:9');
+  win.setQuality(2160);
+  await new Promise(r => setTimeout(r, 100));
+  const code = win.generateCode();
+  test('code contains pixel_width 3840',    () => assertContains(code, 'pixel_width  = 3840'));
+  test('code contains pixel_height 2160',   () => assertContains(code, 'pixel_height = 2160'));
+  test('code contains the SVG filename',    () => assertContains(code, 'logo.svg'));
+  test('code contains manim CLI comment',   () => assertContains(code, 'manim -pq'));
+
+  render();
+}
+
+function render() {
+  const total = passed + failed;
+  document.getElementById('log').innerHTML           = lines.join('\n');
+  document.getElementById('count-pass').textContent  = passed;
+  document.getElementById('count-fail').textContent  = failed;
+  document.getElementById('count-total').textContent = total;
+  const ok = failed === 0;
+  const lbl = document.getElementById('result-label');
+  lbl.textContent  = ok ? '✓ PASS' : '✗ FAIL';
+  lbl.className    = 'stat-value text-sm ' + (ok ? 'text-success' : 'text-error');
+}
+</script>
+</body>
+</html>
