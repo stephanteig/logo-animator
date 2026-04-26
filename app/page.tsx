@@ -230,11 +230,25 @@ export default function Home() {
     );
   }
 
-  // Editor
-  const previewW = format === '16:9' ? 480 : format === '9:16' ? 360 : 440;
-  const previewH = format === '16:9' ? 270 : format === '9:16' ? 640 : 440;
-  const previewBoxW = format === '16:9' ? 560 : format === '9:16' ? 326 : 460;
-  const previewBoxH = format === '9:16' ? 580 : 460;
+  // Editor — compute the preview box from the actual aspect ratio so 1:1,
+  // 16:9, and 9:16 each render at their true proportions.
+  const PREVIEW_MAX_W = 640;
+  const PREVIEW_MAX_H = 540;
+  const ratio = format === '16:9' ? 16 / 9 : format === '9:16' ? 9 / 16 : 1;
+  // Fit inside (PREVIEW_MAX_W × PREVIEW_MAX_H), preserving the ratio.
+  let previewBoxW = PREVIEW_MAX_W;
+  let previewBoxH = previewBoxW / ratio;
+  if (previewBoxH > PREVIEW_MAX_H) {
+    previewBoxH = PREVIEW_MAX_H;
+    previewBoxW = previewBoxH * ratio;
+  }
+  previewBoxW = Math.round(previewBoxW);
+  previewBoxH = Math.round(previewBoxH);
+
+  // The dimension label shown in the corner. Uses a canonical 1080-line frame
+  // size for each ratio so users see the actual export size.
+  const previewW = format === '16:9' ? 1920 : format === '9:16' ? 1080 : 1080;
+  const previewH = format === '16:9' ? 1080 : format === '9:16' ? 1920 : 1080;
 
   const cur = elapsed.toFixed(2);
   const dur = totalDur.toFixed(2);
@@ -403,7 +417,7 @@ export default function Home() {
             )}
 
             {split && (
-              <div style={{ position: 'relative', width: 520, height: 460, borderRadius: 18, overflow: 'hidden', background: '#0d0b18' }}>
+              <div style={{ position: 'relative', width: previewBoxW, height: previewBoxH, borderRadius: 18, overflow: 'hidden', background: '#0d0b18' }}>
                 <div style={{ position: 'absolute', inset: 0 }}>
                   <AnimatedPreview
                     paths={paths}
