@@ -9,6 +9,8 @@ import TraceSlider from './components/TraceSlider';
 import KeyboardOverlay from './components/KeyboardOverlay';
 import AnimatedPreview from './components/AnimatedPreview';
 import ExportModal from './components/ExportModal';
+import StrokePanel from './components/StrokePanel';
+import BackgroundPanel from './components/BackgroundPanel';
 import {
   DownloadIcon,
   PlayIcon,
@@ -47,6 +49,10 @@ export default function Home() {
 
   const [showKbd, setShowKbd] = useState(false);
   const [showExport, setShowExport] = useState(false);
+
+  const [tab, setTab] = useState<'animation' | 'stroke' | 'background'>('animation');
+  const [bgColor, setBgColor] = useState<string>('#0d0b18');
+  const [strokeWidthOverride, setStrokeWidthOverride] = useState<number | null>(null);
 
   const visibleCount = paths.filter((p) => p.visible).length;
   const totalDur =
@@ -240,21 +246,32 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <TraceWordmark />
           <nav style={{ display: 'flex', gap: 2, fontSize: 12.5 }}>
-            {['Animation', 'Stroke', 'Background'].map((t, i) => (
-              <span
-                key={t}
-                style={{
-                  padding: '5px 11px',
-                  borderRadius: 7,
-                  color: i === 0 ? '#fff' : 'rgba(255,255,255,0.65)',
-                  background: i === 0 ? 'rgba(255,255,255,0.15)' : 'transparent',
-                  fontWeight: i === 0 ? 500 : 400,
-                  cursor: 'pointer',
-                }}
-              >
-                {t}
-              </span>
-            ))}
+            {([
+              ['animation', 'Animation'],
+              ['stroke', 'Stroke'],
+              ['background', 'Background'],
+            ] as const).map(([id, label]) => {
+              const active = tab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 7,
+                    color: active ? '#fff' : 'rgba(255,255,255,0.65)',
+                    background: active ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    fontWeight: active ? 500 : 400,
+                    cursor: 'pointer',
+                    border: 'none',
+                    fontFamily: 'inherit',
+                    fontSize: 12.5,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </nav>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -285,61 +302,78 @@ export default function Home() {
 
       <div style={{ flex: 1, display: 'flex', background: '#fff', overflow: 'hidden' }}>
         <aside style={{ width: 320, padding: '18px 20px', borderRight: '1px solid #ededed', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flexShrink: 0 }}>
-          {/* Smart defaults — F6 */}
-          <div style={{ padding: 12, background: smartDefaults ? 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(236,72,153,0.06))' : '#fafafa', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.18)' : '#ededed'}`, borderRadius: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: smartDefaults ? '#7c3aed' : '#3f3f46' }}>
-                  <SparkleIcon /> Smart defaults
+          {tab === 'animation' && (
+            <>
+              {/* Smart defaults — F6 */}
+              <div style={{ padding: 12, background: smartDefaults ? 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(236,72,153,0.06))' : '#fafafa', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.18)' : '#ededed'}`, borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: smartDefaults ? '#7c3aed' : '#3f3f46' }}>
+                      <SparkleIcon /> Smart defaults
+                    </div>
+                    <div style={{ fontSize: 11, color: '#71717a', marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
+                  </div>
+                  <button
+                    onClick={() => onToggleSmartDefaults(!smartDefaults)}
+                    style={{ width: 32, height: 20, borderRadius: 99, background: smartDefaults ? '#7c3aed' : '#d4d4d8', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <span style={{ position: 'absolute', top: 2, left: smartDefaults ? 14 : 2, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s' }} />
+                  </button>
                 </div>
-                <div style={{ fontSize: 11, color: '#71717a', marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
               </div>
-              <button
-                onClick={() => onToggleSmartDefaults(!smartDefaults)}
-                style={{ width: 32, height: 20, borderRadius: 99, background: smartDefaults ? '#7c3aed' : '#d4d4d8', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-              >
-                <span style={{ position: 'absolute', top: 2, left: smartDefaults ? 14 : 2, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s' }} />
-              </button>
-            </div>
-          </div>
 
-          {/* Format */}
-          <div>
-            <div className="mono-label" style={{ marginBottom: 10 }}>Format</div>
-            <div style={{ display: 'flex', padding: 3, background: '#f4f4f5', borderRadius: 8, gap: 2 }}>
-              {(['1:1', '16:9', '9:16'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setFormat(r)}
-                  style={{
-                    flex: 1,
-                    padding: '6px 0',
-                    fontSize: 12,
-                    background: format === r ? '#fff' : 'transparent',
-                    borderRadius: 6,
-                    color: format === r ? '#0a0a14' : '#71717a',
-                    border: 'none',
-                    fontWeight: 500,
-                    boxShadow: format === r ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Format */}
+              <div>
+                <div className="mono-label" style={{ marginBottom: 10 }}>Format</div>
+                <div style={{ display: 'flex', padding: 3, background: '#f4f4f5', borderRadius: 8, gap: 2 }}>
+                  {(['1:1', '16:9', '9:16'] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setFormat(r)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 0',
+                        fontSize: 12,
+                        background: format === r ? '#fff' : 'transparent',
+                        borderRadius: 6,
+                        color: format === r ? '#0a0a14' : '#71717a',
+                        border: 'none',
+                        fontWeight: 500,
+                        boxShadow: format === r ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <PathList paths={paths} onChange={setPaths} />
+              <PathList paths={paths} onChange={setPaths} />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="mono-label">Timing</div>
-            <TraceSlider label="Stroke draw" displayVal={`${drawDur.toFixed(2)}s`} value={drawDur} min={0.3} max={6} onChange={setDrawDur} />
-            <TraceSlider label="Fill bloom" displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0} max={3} onChange={setFillStart} />
-            <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`} value={stagger} min={0} max={1} onChange={setStagger} />
-            <TraceSlider label="Hold at end" displayVal={`${hold.toFixed(2)}s`} value={hold} min={0} max={3} onChange={setHold} />
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="mono-label">Timing</div>
+                <TraceSlider label="Stroke draw" displayVal={`${drawDur.toFixed(2)}s`} value={drawDur} min={0.3} max={6} onChange={setDrawDur} />
+                <TraceSlider label="Fill bloom" displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0} max={3} onChange={setFillStart} />
+                <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`} value={stagger} min={0} max={1} onChange={setStagger} />
+                <TraceSlider label="Hold at end" displayVal={`${hold.toFixed(2)}s`} value={hold} min={0} max={3} onChange={setHold} />
+              </div>
+            </>
+          )}
+
+          {tab === 'stroke' && (
+            <StrokePanel
+              paths={paths}
+              onChange={setPaths}
+              strokeWidthOverride={strokeWidthOverride}
+              onStrokeWidthChange={setStrokeWidthOverride}
+            />
+          )}
+
+          {tab === 'background' && (
+            <BackgroundPanel bgColor={bgColor} onChange={setBgColor} />
+          )}
         </aside>
 
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -362,6 +396,8 @@ export default function Home() {
                   fillStart={fillStart}
                   stagger={stagger}
                   viewBox={viewBox}
+                  bgColor={bgColor}
+                  strokeWidthOverride={strokeWidthOverride}
                 />
               </div>
             )}
@@ -377,9 +413,12 @@ export default function Home() {
                     fillStart={fillStart}
                     stagger={stagger}
                     viewBox={viewBox}
+                    bgColor={bgColor}
+                    strokeWidthOverride={strokeWidthOverride}
+                    showHalo={false}
                   />
                 </div>
-                <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - splitPos}% 0 0)`, background: '#0d0b18' }}>
+                <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - splitPos}% 0 0)`, background: bgColor === 'transparent' ? '#0d0b18' : bgColor }}>
                   <AnimatedPreview
                     paths={paths}
                     elapsed={totalDur}
@@ -388,8 +427,11 @@ export default function Home() {
                     fillStart={fillStart}
                     stagger={stagger}
                     viewBox={viewBox}
+                    bgColor={bgColor}
+                    strokeWidthOverride={strokeWidthOverride}
                     frozen
                     desaturate
+                    showHalo={false}
                   />
                 </div>
                 <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 9px', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-geist-mono), monospace', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>

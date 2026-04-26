@@ -55,6 +55,9 @@ interface Props {
   viewBox: string;
   frozen?: boolean;      // show fully drawn static (for split original)
   desaturate?: boolean;  // for split original
+  bgColor?: string;      // 'transparent' or hex
+  strokeWidthOverride?: number | null;
+  showHalo?: boolean;
 }
 
 export default function AnimatedPreview({
@@ -67,6 +70,9 @@ export default function AnimatedPreview({
   viewBox,
   frozen = false,
   desaturate = false,
+  bgColor = '#0d0b18',
+  strokeWidthOverride = null,
+  showHalo = true,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const lengthCache = useRef<Map<string, number>>(new Map());
@@ -90,21 +96,33 @@ export default function AnimatedPreview({
     });
   });
 
+  const isTransparent = bgColor === 'transparent';
+  const checkerBg = isTransparent
+    ? {
+        backgroundColor: '#1c1c1c',
+        backgroundImage:
+          'linear-gradient(45deg, #2a2a2a 25%, transparent 25%), linear-gradient(-45deg, #2a2a2a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a2a2a 75%), linear-gradient(-45deg, transparent 75%, #2a2a2a 75%)',
+        backgroundSize: '16px 16px',
+        backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0',
+      }
+    : { background: bgColor };
+
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Conic halo */}
-      <div style={{
-        position: 'absolute',
-        inset: -50,
-        background: 'conic-gradient(from 180deg at 50% 50%, #a78bfa, #ec4899, #f59e0b, #06b6d4, #a78bfa)',
-        filter: 'blur(70px)',
-        opacity: 0.3,
-        borderRadius: '50%',
-        pointerEvents: 'none',
-      }}/>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {showHalo && (
+        <div style={{
+          position: 'absolute',
+          inset: -50,
+          background: 'conic-gradient(from 180deg at 50% 50%, #a78bfa, #ec4899, #f59e0b, #06b6d4, #a78bfa)',
+          filter: 'blur(70px)',
+          opacity: 0.3,
+          borderRadius: '50%',
+          pointerEvents: 'none',
+        }}/>
+      )}
       <div style={{
         position: 'relative',
-        background: '#0d0b18',
+        ...checkerBg,
         borderRadius: 18,
         display: 'flex',
         alignItems: 'center',
@@ -140,7 +158,7 @@ export default function AnimatedPreview({
                 fill={state.fillOpacity > 0.01 && p.fill !== 'none' ? p.fill : 'none'}
                 fillOpacity={p.fill !== 'none' ? state.fillOpacity : 0}
                 stroke={p.stroke !== 'none' ? p.stroke : 'none'}
-                strokeWidth={p.strokeWidth || 2}
+                strokeWidth={strokeWidthOverride ?? p.strokeWidth ?? 2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeOpacity={state.strokeOpacity}
