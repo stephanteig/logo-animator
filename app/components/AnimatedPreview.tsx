@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { PathItem } from '../lib/types';
 
 interface PathState {
@@ -20,14 +20,12 @@ function computePathState(
   const pathStart = pathIndex * stagger;
   const drawEnd = pathStart + drawDur;
 
-  // stroke draw progress [0..1]
   const drawProg = elapsed < pathStart
     ? 0
     : elapsed >= drawEnd
     ? 1
     : (elapsed - pathStart) / drawDur;
 
-  // fill bloom: starts at fillStart after this path's draw starts
   const fillBegin = pathStart + fillStart;
   const fillDur = 0.6;
   const fillProg = elapsed < fillBegin
@@ -47,18 +45,21 @@ function computePathState(
 
 interface Props {
   paths: PathItem[];
-  elapsed: number;       // current time in seconds
+  elapsed: number;
   totalDur: number;
   drawDur: number;
   fillStart: number;
   stagger: number;
   viewBox: string;
-  frozen?: boolean;      // show fully drawn static (for split original)
-  desaturate?: boolean;  // for split original
-  bgColor?: string;      // 'transparent' or hex
+  frozen?: boolean;
+  desaturate?: boolean;
+  bgColor?: string;
   strokeWidthOverride?: number | null;
   showHalo?: boolean;
 }
+
+// Use SSR-safe layout effect (useLayoutEffect runs only client-side; no-op SSR fallback).
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function AnimatedPreview({
   paths,
@@ -75,26 +76,40 @@ export default function AnimatedPreview({
   showHalo = true,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const lengthCache = useRef<Map<string, number>>(new Map());
+  // Stored in state so a re-render is triggered as soon as lengths are measured.
+  const [lengths, setLengths] = useState<Record<string, number>>({});
 
-  // We render SVG paths inline with computed dash offsets based on elapsed
   const visiblePaths = paths.filter((p) => p.visible);
 
-  // Get total length for each path (via getTotalLength from DOM ref)
-  useEffect(() => {
+  // Measure path lengths after layout. Re-measures whenever the path set or
+  // viewBox changes — both can change the underlying geometry.
+  useIsoLayoutEffect(() => {
     if (!svgRef.current) return;
+    const next: Record<string, number> = {};
+    let changed = false;
     const pathEls = svgRef.current.querySelectorAll<SVGPathElement>('[data-path-id]');
     pathEls.forEach((el) => {
-      const id = el.getAttribute('data-path-id')!;
-      if (!lengthCache.current.has(id)) {
-        try {
-          lengthCache.current.set(id, el.getTotalLength());
-        } catch {
-          lengthCache.current.set(id, 500);
-        }
+      const id = el.getAttribute('data-path-id');
+      if (!id) return;
+      let len = 0;
+      try {
+        len = el.getTotalLength();
+      } catch {
+        len = 0;
       }
+      // Fall back to a non-zero placeholder so the dasharray maths produce
+      // something visible if a malformed path can't be measured.
+      if (!Number.isFinite(len) || len <= 0) len = 1000;
+      next[id] = len;
+      if (lengths[id] !== len) changed = true;
     });
-  });
+    // Detect removed ids too.
+    const oldKeys = Object.keys(lengths);
+    if (oldKeys.length !== Object.keys(next).length) changed = true;
+    if (changed) setLengths(next);
+    // Intentionally only re-runs when path set / geometry changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paths, viewBox]);
 
   const isTransparent = bgColor === 'transparent';
   const checkerBg = isTransparent
@@ -135,35 +150,60 @@ export default function AnimatedPreview({
         <svg
           ref={svgRef}
           viewBox={viewBox}
+          preserveAspectRatio="xMidYMid meet"
           style={{
-            width: '60%',
-            height: '60%',
+            width: '70%',
+            height: '70%',
             filter: desaturate ? 'saturate(0) brightness(0.7)' : undefined,
           }}
           xmlns="http://www.w3.org/2000/svg"
         >
           {visiblePaths.map((p, i) => {
             const state = frozen
-              ? { dashOffset: 0, fillOpacity: 1, strokeOpacity: 0 }
+              ? { dashOffset: 0, fillOpacity: 1, strokeOpacity: p.fill !== 'none' ? 0 : 1 }
               : computePathState(elapsed, i, visiblePaths.length, drawDur, fillStart, stagger);
 
-            const len = lengthCache.current.get(p.id) ?? 500;
-            const dashOffset = len * state.dashOffset;
+            // While we don't have a measured length yet, render the path WITHOUT
+            // dasharray so it's visible by its fill (avoids a flash of empty
+            // preview if measurement is slow or fails).
+            const len = lengths[p.id];
+            const measured = typeof len === 'number' && len > 0;
+
+            const strokeWidth = strokeWidthOverride ?? p.strokeWidth ?? 2;
+            const strokeColor = p.stroke !== 'none' ? p.stroke : 'none';
+            const fillColor = p.fill !== 'none' ? p.fill : 'none';
+
+            if (!measured) {
+              return (
+                <path
+                  key={p.id}
+                  data-path-id={p.id}
+                  d={p.d}
+                  fill={fillColor}
+                  fillOpacity={fillColor === 'none' ? 0 : 1}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeOpacity={strokeColor === 'none' ? 0 : 1}
+                />
+              );
+            }
 
             return (
               <path
                 key={p.id}
                 data-path-id={p.id}
                 d={p.d}
-                fill={state.fillOpacity > 0.01 && p.fill !== 'none' ? p.fill : 'none'}
-                fillOpacity={p.fill !== 'none' ? state.fillOpacity : 0}
-                stroke={p.stroke !== 'none' ? p.stroke : 'none'}
-                strokeWidth={strokeWidthOverride ?? p.strokeWidth ?? 2}
+                fill={state.fillOpacity > 0.01 && fillColor !== 'none' ? fillColor : 'none'}
+                fillOpacity={fillColor !== 'none' ? state.fillOpacity : 0}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeOpacity={state.strokeOpacity}
+                strokeOpacity={strokeColor !== 'none' ? state.strokeOpacity : 0}
                 strokeDasharray={len}
-                strokeDashoffset={dashOffset}
+                strokeDashoffset={len * state.dashOffset}
               />
             );
           })}
