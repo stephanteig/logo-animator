@@ -30,7 +30,7 @@ const FILL_BLOOM_DUR = 0.6;
 
 export default function Home() {
   const [paths, setPaths] = useState<PathItem[]>([]);
-  const [viewBox, setViewBox] = useState('0 0 200 200');
+  const [svgMarkup, setSvgMarkup] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
 
   const [drawDur, setDrawDur] = useState(2.4);
@@ -63,9 +63,9 @@ export default function Home() {
   // ── Loaders ─────────────────────────────────────────────────
   const loadSample = useCallback((key: SampleKey) => {
     const s = SAMPLES[key];
-    const { paths: parsed, viewBox: vb } = parseSVG(s.svg);
+    const { paths: parsed, svgMarkup: markup } = parseSVG(s.svg);
     setPaths(parsed);
-    setViewBox(vb);
+    setSvgMarkup(markup);
     setFileName(`${s.name.toLowerCase()}.svg`);
     if (smartDefaults) {
       const d = applySmartDefaults(parsed.length);
@@ -80,10 +80,10 @@ export default function Home() {
   }, [smartDefaults]);
 
   const loadSVGText = useCallback((text: string, name: string) => {
-    const { paths: parsed, viewBox: vb } = parseSVG(text);
+    const { paths: parsed, svgMarkup: markup } = parseSVG(text);
     if (parsed.length === 0) return;
     setPaths(parsed);
-    setViewBox(vb);
+    setSvgMarkup(markup);
     setFileName(name);
     if (smartDefaults) {
       const d = applySmartDefaults(parsed.length);
@@ -99,6 +99,7 @@ export default function Home() {
 
   const clearFile = () => {
     setPaths([]);
+    setSvgMarkup('');
     setFileName('');
     setPlaying(false);
     setElapsed(0);
@@ -404,12 +405,11 @@ export default function Home() {
               <div style={{ width: previewBoxW, height: previewBoxH }}>
                 <AnimatedPreview
                   paths={paths}
+                  svgMarkup={svgMarkup}
                   elapsed={elapsed}
-                  totalDur={totalDur}
                   drawDur={drawDur}
                   fillStart={fillStart}
                   stagger={stagger}
-                  viewBox={viewBox}
                   bgColor={bgColor}
                   strokeWidthOverride={strokeWidthOverride}
                 />
@@ -421,12 +421,11 @@ export default function Home() {
                 <div style={{ position: 'absolute', inset: 0 }}>
                   <AnimatedPreview
                     paths={paths}
+                    svgMarkup={svgMarkup}
                     elapsed={elapsed}
-                    totalDur={totalDur}
                     drawDur={drawDur}
                     fillStart={fillStart}
                     stagger={stagger}
-                    viewBox={viewBox}
                     bgColor={bgColor}
                     strokeWidthOverride={strokeWidthOverride}
                     showHalo={false}
@@ -435,12 +434,11 @@ export default function Home() {
                 <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - splitPos}% 0 0)`, background: bgColor === 'transparent' ? '#0d0b18' : bgColor }}>
                   <AnimatedPreview
                     paths={paths}
+                    svgMarkup={svgMarkup}
                     elapsed={totalDur}
-                    totalDur={totalDur}
                     drawDur={drawDur}
                     fillStart={fillStart}
                     stagger={stagger}
-                    viewBox={viewBox}
                     bgColor={bgColor}
                     strokeWidthOverride={strokeWidthOverride}
                     frozen
