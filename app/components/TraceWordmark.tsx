@@ -4,35 +4,44 @@ import Image from 'next/image';
 import { asset } from '../lib/asset';
 
 interface Props {
-  /** Pixel height of the rendered logo. Width follows the PNG aspect ratio. */
+  /** Pixel height of the rendered logo. Width follows the file's aspect ratio. */
   size?: number;
-  /**
-   * Tone of the surface this lives on. The source PNG has a black wordmark on
-   * transparent — fine on light surfaces. On dark we invert+hue-rotate so the
-   * wordmark goes white while the violet→pink gradient stays roughly itself.
-   */
+  /** Which surface this sits on — picks the right pre-built SVG. */
   tone?: 'light' | 'dark';
+  /** Render the symbol/mark only (no wordmark text). */
+  markOnly?: boolean;
 }
 
-// trace_logo@4x.png is 924×364 (231.61 × 91.03 viewBox at 4×). Aspect ratio ≈ 2.539.
-const ASPECT = 924 / 364;
+// Wordmarks are 360×120 (aspect 3:1). Mark is 120×120 (aspect 1:1).
+const WORDMARK_ASPECT = 360 / 120;
 
-export default function TraceWordmark({ size = 22, tone = 'dark' }: Props) {
-  const width = Math.round(size * ASPECT);
+export default function TraceWordmark({ size = 22, tone = 'dark', markOnly = false }: Props) {
+  if (markOnly) {
+    return (
+      <Image
+        src={asset('/assets/mark-only.svg')}
+        alt="Trace"
+        width={size}
+        height={size}
+        priority
+        style={{ height: size, width: size, userSelect: 'none' }}
+      />
+    );
+  }
+
+  const src = tone === 'light'
+    ? asset('/assets/logo-on-light.svg')
+    : asset('/assets/logo-on-dark.svg');
+  const width = Math.round(size * WORDMARK_ASPECT);
+
   return (
     <Image
-      src={asset('/assets/trace_logo@4x.png')}
+      src={src}
       alt="Trace"
       width={width}
       height={size}
       priority
-      style={{
-        height: size,
-        width,
-        // Invert + hue-rotate: black wordmark → white, gradient hues mostly preserved.
-        filter: tone === 'dark' ? 'invert(1) hue-rotate(180deg)' : undefined,
-        userSelect: 'none',
-      }}
+      style={{ height: size, width, userSelect: 'none' }}
     />
   );
 }
