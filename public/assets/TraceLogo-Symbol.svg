@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 723.73 1080">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#New_Gradient_Swatch);
+      }
+    </style>
+    <linearGradient id="New_Gradient_Swatch" data-name="New Gradient Swatch" x1="0" y1="540" x2="723.73" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <g id="LOGO_SYMBOL" data-name="LOGO &amp;amp; SYMBOL">
+    <path id="TRACE-Symbol" class="cls-1" d="M723.73,352.2v620.63c0,59.13-47.97,107.17-107.17,107.17s-107.17-48.04-107.17-107.17V361.53c0-81.2-65.81-147.01-147.01-147.01s-147.01,65.81-147.01,147.01v611.3c0,14.06-2.71,27.42-7.63,39.78-15.82,39.46-54.4,67.39-99.54,67.39-59.19,0-107.17-48.04-107.17-107.17,0,0-2.34-466.86,0-622.46C3.97,155.83,166.46,0,362.39,0s356.43,156.84,361.35,352.2Z"/>
+  </g>
+</svg>
