@@ -28,6 +28,18 @@ import type { PathItem, LoopMode } from './lib/types';
 
 const FILL_BLOOM_DUR = 0.6;
 
+// ── Shared style tokens ──────────────────────────────────────
+const T = {
+  textHi:    '#f0eeff',
+  textMid:   'rgba(240,238,255,0.55)',
+  textLo:    'rgba(240,238,255,0.25)',
+  borderSub: 'rgba(255,255,255,0.07)',
+  borderMed: 'rgba(255,255,255,0.13)',
+  accent:    '#7c3aed',
+  bgDeep:    '#08060e',
+  bgPanel:   'rgba(8,6,14,0.55)',
+};
+
 export default function Home() {
   const [paths, setPaths] = useState<PathItem[]>([]);
   const [svgMarkup, setSvgMarkup] = useState<string>('');
@@ -127,20 +139,12 @@ export default function Home() {
       setElapsed((t) => {
         let next = t + dt * direction;
         if (loop === 'once') {
-          if (next >= totalDur) {
-            next = totalDur;
-            setPlaying(false);
-          }
+          if (next >= totalDur) { next = totalDur; setPlaying(false); }
         } else if (loop === 'loop') {
           if (next >= totalDur) next = 0;
         } else {
-          if (next >= totalDur) {
-            next = totalDur;
-            setDirection(-1);
-          } else if (next <= 0) {
-            next = 0;
-            setDirection(1);
-          }
+          if (next >= totalDur) { next = totalDur; setDirection(-1); }
+          else if (next <= 0)   { next = 0; setDirection(1); }
         }
         return next;
       });
@@ -150,45 +154,35 @@ export default function Home() {
     return () => cancelAnimationFrame(raf);
   }, [playing, loop, direction, totalDur]);
 
-  // ── Keyboard (F10) ──────────────────────────────────────────
+  // ── Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
 
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-        e.preventDefault();
-        setShowKbd((s) => !s);
+        e.preventDefault(); setShowKbd((s) => !s);
       } else if (e.key === ' ') {
-        e.preventDefault();
-        setPlaying((p) => !p);
+        e.preventDefault(); setPlaying((p) => !p);
       } else if (e.key === 'r' || e.key === 'R') {
-        setElapsed(0);
-        setDirection(1);
-        setPlaying(true);
+        setElapsed(0); setDirection(1); setPlaying(true);
       } else if (e.key === 'l' || e.key === 'L') {
         setLoop((m) => (m === 'once' ? 'loop' : m === 'loop' ? 'pingpong' : 'once'));
       } else if (e.key === 's' || e.key === 'S') {
         setSplit((s) => !s);
-      } else if (e.key === '1') {
-        setFormat('1:1');
-      } else if (e.key === '2') {
-        setFormat('16:9');
-      } else if (e.key === '3') {
-        setFormat('9:16');
+      } else if (e.key === '1') { setFormat('1:1');
+      } else if (e.key === '2') { setFormat('16:9');
+      } else if (e.key === '3') { setFormat('9:16');
       } else if (e.key === 'ArrowLeft') {
         setElapsed((t) => Math.max(0, t - (e.shiftKey ? t : 0.1)));
       } else if (e.key === 'ArrowRight') {
         setElapsed((t) => Math.min(totalDur, t + (e.shiftKey ? totalDur - t : 0.1)));
       } else if (e.key === 'Escape') {
-        setShowKbd(false);
-        setShowExport(false);
+        setShowKbd(false); setShowExport(false);
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'e' || e.key === 'E')) {
-        e.preventDefault();
-        setShowExport(true);
+        e.preventDefault(); setShowExport(true);
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'Backspace') {
-        e.preventDefault();
-        clearFile();
+        e.preventDefault(); clearFile();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -204,8 +198,7 @@ export default function Home() {
     const rect = barRef.current.getBoundingClientRect();
     const update = (clientX: number) => {
       const x = (clientX - rect.left) / rect.width;
-      const clamped = Math.max(0, Math.min(1, x));
-      setElapsed(clamped * totalDur);
+      setElapsed(Math.max(0, Math.min(1, x)) * totalDur);
     };
     update(e.clientX);
     const onMove = (ev: MouseEvent) => update(ev.clientX);
@@ -217,13 +210,19 @@ export default function Home() {
     window.addEventListener('mouseup', onUp);
   };
 
-  // Empty state branch
+  // ── Empty state ──────────────────────────────────────────────
   if (!fileLoaded) {
     return (
-      <div style={{ width: '100%', height: '100vh', minHeight: 760, background: '#fff', fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', height: '100vh', minHeight: 760, background: T.bgDeep, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column' }}>
         <HeroBand>
           <TraceWordmark />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-geist-mono), monospace' }}>no file</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setShowKbd(true)}
+              title="Keyboard shortcuts (?)"
+              style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.06)', color: T.textMid, border: `1px solid ${T.borderSub}`, borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
+            >?</button>
+          </div>
         </HeroBand>
         <EmptyState onSamplePick={loadSample} onFileDrop={loadSVGText} />
         {showKbd && <KeyboardOverlay onClose={() => setShowKbd(false)} />}
@@ -231,23 +230,16 @@ export default function Home() {
     );
   }
 
-  // Editor — compute the preview box from the actual aspect ratio so 1:1,
-  // 16:9, and 9:16 each render at their true proportions.
+  // ── Editor ───────────────────────────────────────────────────
   const PREVIEW_MAX_W = 640;
   const PREVIEW_MAX_H = 540;
   const ratio = format === '16:9' ? 16 / 9 : format === '9:16' ? 9 / 16 : 1;
-  // Fit inside (PREVIEW_MAX_W × PREVIEW_MAX_H), preserving the ratio.
   let previewBoxW = PREVIEW_MAX_W;
   let previewBoxH = previewBoxW / ratio;
-  if (previewBoxH > PREVIEW_MAX_H) {
-    previewBoxH = PREVIEW_MAX_H;
-    previewBoxW = previewBoxH * ratio;
-  }
+  if (previewBoxH > PREVIEW_MAX_H) { previewBoxH = PREVIEW_MAX_H; previewBoxW = previewBoxH * ratio; }
   previewBoxW = Math.round(previewBoxW);
   previewBoxH = Math.round(previewBoxH);
 
-  // The dimension label shown in the corner. Uses a canonical 1080-line frame
-  // size for each ratio so users see the actual export size.
   const previewW = format === '16:9' ? 1920 : format === '9:16' ? 1080 : 1080;
   const previewH = format === '16:9' ? 1080 : format === '9:16' ? 1920 : 1080;
 
@@ -256,15 +248,17 @@ export default function Home() {
   const scrubPct = totalDur > 0 ? (elapsed / totalDur) * 100 : 0;
 
   return (
-    <div style={{ width: '100%', height: '100vh', minHeight: 760, background: '#fafafa', color: '#0a0a14', fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100vh', minHeight: 760, background: T.bgDeep, color: T.textHi, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+      {/* ── Navbar ── */}
       <HeroBand>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <TraceWordmark />
           <nav style={{ display: 'flex', gap: 2, fontSize: 12.5 }}>
             {([
               ['animation', 'Animation'],
-              ['stroke', 'Stroke'],
-              ['background', 'Background'],
+              ['stroke',    'Stroke'],
+              ['background','Background'],
             ] as const).map(([id, label]) => {
               const active = tab === id;
               return (
@@ -272,15 +266,17 @@ export default function Home() {
                   key={id}
                   onClick={() => setTab(id)}
                   style={{
-                    padding: '5px 11px',
+                    padding: '5px 12px',
                     borderRadius: 7,
-                    color: active ? '#fff' : 'rgba(255,255,255,0.65)',
-                    background: active ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    color: active ? '#fff' : T.textMid,
+                    background: active ? 'rgba(124,58,237,0.7)' : 'transparent',
                     fontWeight: active ? 500 : 400,
                     cursor: 'pointer',
                     border: 'none',
                     fontFamily: 'inherit',
                     fontSize: 12.5,
+                    boxShadow: active ? '0 0 10px rgba(124,58,237,0.35)' : 'none',
+                    transition: 'all 0.15s',
                   }}
                 >
                   {label}
@@ -289,79 +285,59 @@ export default function Home() {
             })}
           </nav>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-geist-mono), monospace' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: T.textLo, fontFamily: 'var(--font-geist-mono), monospace', background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.borderSub}`, padding: '2px 9px', borderRadius: 6 }}>
             {fileName} · {paths.length} paths
           </span>
           <button
             onClick={() => setShowKbd(true)}
             title="Keyboard shortcuts (?)"
-            style={{ width: 30, height: 30, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 7, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
-          >
-            ?
-          </button>
+            style={{ width: 30, height: 30, background: 'rgba(255,255,255,0.06)', color: T.textMid, border: `1px solid ${T.borderSub}`, borderRadius: 7, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
+          >?</button>
           <button
             onClick={clearFile}
-            style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}
-          >
-            New
-          </button>
+            style={{ background: 'rgba(255,255,255,0.07)', color: T.textMid, border: `1px solid ${T.borderSub}`, padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+          >New</button>
           <button
             onClick={() => setShowExport(true)}
-            style={{ background: '#fff', color: '#0a0814', border: 'none', padding: '7px 18px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+            style={{ background: T.accent, color: '#fff', border: 'none', padding: '7px 18px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 0 20px rgba(124,58,237,0.45), 0 2px 8px rgba(0,0,0,0.4)', fontFamily: 'inherit' }}
           >
             <DownloadIcon /> Export
           </button>
         </div>
       </HeroBand>
 
-      <div style={{ flex: 1, display: 'flex', background: '#fff', overflow: 'hidden' }}>
-        <aside style={{ width: 308, padding: '18px 18px', borderRight: '1px solid rgba(15,23,42,0.07)', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flexShrink: 0, background: '#fdfdfe' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* ── Sidebar ── */}
+        <aside style={{ width: 300, padding: '16px 16px', borderRight: `1px solid ${T.borderSub}`, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', flexShrink: 0, background: T.bgPanel, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+
           {tab === 'animation' && (
             <>
-              {/* Smart defaults */}
-              <div style={{ padding: '12px 14px', background: smartDefaults ? 'linear-gradient(135deg, rgba(124,58,237,0.05), rgba(236,72,153,0.05))' : 'rgba(15,23,42,0.02)', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.2)' : 'rgba(15,23,42,0.07)'}`, borderRadius: 12 }}>
+              {/* Smart defaults toggle */}
+              <div style={{ padding: '12px 14px', background: smartDefaults ? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.28)' : T.borderSub}`, borderRadius: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: smartDefaults ? '#7c3aed' : '#3f3f46' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: smartDefaults ? '#c4b5fd' : T.textMid }}>
                       <SparkleIcon /> Smart defaults
                     </div>
-                    <div style={{ fontSize: 11, color: '#71717a', marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
+                    <div style={{ fontSize: 11, color: T.textLo, marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
                   </div>
                   <button
                     onClick={() => onToggleSmartDefaults(!smartDefaults)}
-                    style={{ width: 36, height: 22, borderRadius: 99, background: smartDefaults ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : '#d4d4d8', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0, boxShadow: smartDefaults ? '0 2px 6px rgba(124,58,237,0.35)' : 'none', transition: 'all 0.2s' }}
+                    style={{ width: 36, height: 22, borderRadius: 99, background: smartDefaults ? T.accent : 'rgba(255,255,255,0.12)', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0, boxShadow: smartDefaults ? '0 0 10px rgba(124,58,237,0.45)' : 'none', transition: 'all 0.2s' }}
                   >
-                    <span style={{ position: 'absolute', top: 3, left: smartDefaults ? 17 : 3, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.18s cubic-bezier(0.16,1,0.3,1)' }} />
+                    <span style={{ position: 'absolute', top: 3, left: smartDefaults ? 17 : 3, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left 0.18s cubic-bezier(0.16,1,0.3,1)' }} />
                   </button>
                 </div>
               </div>
 
               {/* Format */}
               <div>
-                <div className="mono-label" style={{ marginBottom: 10 }}>Format</div>
-                <div style={{ display: 'flex', padding: 3, background: 'rgba(15,23,42,0.04)', borderRadius: 10, gap: 2 }}>
+                <div className="mono-label" style={{ marginBottom: 8 }}>Format</div>
+                <div className="seg-ctrl">
                   {(['1:1', '16:9', '9:16'] as const).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setFormat(r)}
-                      style={{
-                        flex: 1,
-                        padding: '6px 0',
-                        fontSize: 12,
-                        background: format === r ? '#fff' : 'transparent',
-                        borderRadius: 8,
-                        color: format === r ? '#0a0a14' : '#71717a',
-                        border: 'none',
-                        fontWeight: 500,
-                        boxShadow: format === r ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(15,23,42,0.06)' : 'none',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {r}
-                    </button>
+                    <button key={r} onClick={() => setFormat(r)} className={`seg-btn${format === r ? ' on' : ''}`} style={{ flex: 1 }}>{r}</button>
                   ))}
                 </div>
               </div>
@@ -370,21 +346,16 @@ export default function Home() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="mono-label">Timing</div>
-                <TraceSlider label="Stroke draw" displayVal={`${drawDur.toFixed(2)}s`} value={drawDur} min={0.3} max={6} onChange={setDrawDur} />
-                <TraceSlider label="Fill bloom" displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0} max={3} onChange={setFillStart} />
-                <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`} value={stagger} min={0} max={1} onChange={setStagger} />
-                <TraceSlider label="Hold at end" displayVal={`${hold.toFixed(2)}s`} value={hold} min={0} max={3} onChange={setHold} />
+                <TraceSlider label="Stroke draw"  displayVal={`${drawDur.toFixed(2)}s`}  value={drawDur}   min={0.3} max={6} onChange={setDrawDur} />
+                <TraceSlider label="Fill bloom"   displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0}   max={3} onChange={setFillStart} />
+                <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`}   value={stagger}   min={0}   max={1} onChange={setStagger} />
+                <TraceSlider label="Hold at end"  displayVal={`${hold.toFixed(2)}s`}      value={hold}      min={0}   max={3} onChange={setHold} />
               </div>
             </>
           )}
 
           {tab === 'stroke' && (
-            <StrokePanel
-              paths={paths}
-              onChange={setPaths}
-              strokeWidthOverride={strokeWidthOverride}
-              onStrokeWidthChange={setStrokeWidthOverride}
-            />
+            <StrokePanel paths={paths} onChange={setPaths} strokeWidthOverride={strokeWidthOverride} onStrokeWidthChange={setStrokeWidthOverride} />
           )}
 
           {tab === 'background' && (
@@ -392,113 +363,71 @@ export default function Home() {
           )}
         </aside>
 
+        {/* ── Main ── */}
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div className="workspace-grid" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#fafafa' }}>
+
+          {/* Preview area */}
+          <div className="workspace-grid" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: T.bgDeep }}>
+
+            {/* Live badge */}
             <div className="badge-glass" style={{ position: 'absolute', top: 14, left: 18 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 99, background: '#10b981', boxShadow: '0 0 0 2.5px rgba(16,185,129,0.22)' }} />
-              <span style={{ fontSize: 11.5, color: '#3f3f46', fontWeight: 500 }}>Live preview</span>
+              <span style={{ width: 6, height: 6, borderRadius: 99, background: '#10b981', boxShadow: '0 0 0 2.5px rgba(16,185,129,0.2)' }} />
+              <span style={{ fontSize: 11 }}>Live preview</span>
             </div>
+            {/* Resolution badge */}
             <div className="badge-glass" style={{ position: 'absolute', top: 14, right: 18, fontFamily: 'var(--font-geist-mono), monospace' }}>
-              <span style={{ fontSize: 11.5, color: '#71717a' }}>{previewW} × {previewH}</span>
+              <span style={{ fontSize: 10.5 }}>{previewW} × {previewH}</span>
             </div>
 
             {!split && (
               <div style={{ width: previewBoxW, height: previewBoxH }}>
-                <AnimatedPreview
-                  paths={paths}
-                  svgMarkup={svgMarkup}
-                  elapsed={elapsed}
-                  drawDur={drawDur}
-                  fillStart={fillStart}
-                  stagger={stagger}
-                  bgColor={bgColor}
-                  strokeWidthOverride={strokeWidthOverride}
-                />
+                <AnimatedPreview paths={paths} svgMarkup={svgMarkup} elapsed={elapsed} drawDur={drawDur} fillStart={fillStart} stagger={stagger} bgColor={bgColor} strokeWidthOverride={strokeWidthOverride} />
               </div>
             )}
 
             {split && (
               <div style={{ position: 'relative', width: previewBoxW, height: previewBoxH, borderRadius: 18, overflow: 'hidden', background: '#0d0b18' }}>
                 <div style={{ position: 'absolute', inset: 0 }}>
-                  <AnimatedPreview
-                    paths={paths}
-                    svgMarkup={svgMarkup}
-                    elapsed={elapsed}
-                    drawDur={drawDur}
-                    fillStart={fillStart}
-                    stagger={stagger}
-                    bgColor={bgColor}
-                    strokeWidthOverride={strokeWidthOverride}
-                    showHalo={false}
-                  />
+                  <AnimatedPreview paths={paths} svgMarkup={svgMarkup} elapsed={elapsed} drawDur={drawDur} fillStart={fillStart} stagger={stagger} bgColor={bgColor} strokeWidthOverride={strokeWidthOverride} showHalo={false} />
                 </div>
                 <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - splitPos}% 0 0)`, background: bgColor === 'transparent' ? '#0d0b18' : bgColor }}>
-                  <AnimatedPreview
-                    paths={paths}
-                    svgMarkup={svgMarkup}
-                    elapsed={totalDur}
-                    drawDur={drawDur}
-                    fillStart={fillStart}
-                    stagger={stagger}
-                    bgColor={bgColor}
-                    strokeWidthOverride={strokeWidthOverride}
-                    frozen
-                    desaturate
-                    showHalo={false}
-                  />
+                  <AnimatedPreview paths={paths} svgMarkup={svgMarkup} elapsed={totalDur} drawDur={drawDur} fillStart={fillStart} stagger={stagger} bgColor={bgColor} strokeWidthOverride={strokeWidthOverride} frozen desaturate showHalo={false} />
                 </div>
-                <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 9px', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-geist-mono), monospace', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  Original
-                </div>
-                <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 9px', background: 'rgba(124,58,237,0.6)', backdropFilter: 'blur(8px)', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-geist-mono), monospace', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  Animated
-                </div>
+                <div style={{ position: 'absolute', top: 12, left: 12, padding: '3px 8px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', borderRadius: 5, fontSize: 9.5, fontFamily: 'var(--font-geist-mono), monospace', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Original</div>
+                <div style={{ position: 'absolute', top: 12, right: 12, padding: '3px 8px', background: 'rgba(124,58,237,0.55)', backdropFilter: 'blur(8px)', borderRadius: 5, fontSize: 9.5, fontFamily: 'var(--font-geist-mono), monospace', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Animated</div>
+                {/* Drag handle */}
                 <div
                   onMouseDown={(e) => {
                     e.preventDefault();
                     const parent = e.currentTarget.parentElement!;
                     const rect = parent.getBoundingClientRect();
-                    const onMove = (ev: MouseEvent) => {
-                      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
-                      setSplitPos(Math.max(5, Math.min(95, pct)));
-                    };
-                    const onUp = () => {
-                      window.removeEventListener('mousemove', onMove);
-                      window.removeEventListener('mouseup', onUp);
-                    };
+                    const onMove = (ev: MouseEvent) => setSplitPos(Math.max(5, Math.min(95, ((ev.clientX - rect.left) / rect.width) * 100)));
+                    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
                     window.addEventListener('mousemove', onMove);
                     window.addEventListener('mouseup', onUp);
                   }}
-                  style={{ position: 'absolute', top: 0, bottom: 0, left: `${splitPos}%`, width: 2, background: '#fff', cursor: 'ew-resize' }}
+                  style={{ position: 'absolute', top: 0, bottom: 0, left: `${splitPos}%`, width: 2, background: 'rgba(255,255,255,0.5)', cursor: 'ew-resize' }}
                 >
-                  <div style={{ position: 'absolute', top: '50%', left: -16, width: 34, height: 34, borderRadius: 99, background: '#fff', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', fontSize: 12, color: '#0a0a14', fontWeight: 700 }}>
-                    ⇆
-                  </div>
+                  <div style={{ position: 'absolute', top: '50%', left: -15, width: 30, height: 30, borderRadius: 99, background: '#fff', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', fontSize: 11, color: '#0a0a14', fontWeight: 700 }}>⇆</div>
                 </div>
               </div>
             )}
 
+            {/* Split button */}
             <button
               onClick={() => setSplit(!split)}
               title="Split compare (S)"
               style={{
-                position: 'absolute',
-                bottom: 16,
-                right: 18,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
+                position: 'absolute', bottom: 16, right: 18,
+                display: 'flex', alignItems: 'center', gap: 6,
                 padding: '6px 13px',
-                background: split ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(255,255,255,0.85)',
-                color: split ? '#fff' : '#3f3f46',
-                border: `1px solid ${split ? 'transparent' : 'rgba(15,23,42,0.1)'}`,
-                borderRadius: 9,
-                fontSize: 11.5,
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                fontWeight: 500,
+                background: split ? T.accent : 'rgba(255,255,255,0.07)',
+                color: split ? '#fff' : T.textMid,
+                border: `1px solid ${split ? 'transparent' : T.borderSub}`,
+                borderRadius: 9, fontSize: 11.5, fontFamily: 'inherit',
+                cursor: 'pointer', fontWeight: 500,
                 backdropFilter: split ? 'none' : 'blur(8px)',
-                boxShadow: split ? '0 4px 14px rgba(124,58,237,0.35)' : '0 2px 8px rgba(0,0,0,0.07)',
+                boxShadow: split ? '0 0 16px rgba(124,58,237,0.45)' : '0 2px 8px rgba(0,0,0,0.3)',
                 transition: 'all 0.18s cubic-bezier(0.16,1,0.3,1)',
               }}
             >
@@ -506,65 +435,49 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Scrub bar */}
-          <div style={{ padding: '14px 24px 6px', borderTop: '1px solid rgba(15,23,42,0.07)', background: '#fff' }}>
+          {/* ── Scrub bar ── */}
+          <div style={{ padding: '14px 24px 6px', borderTop: `1px solid ${T.borderSub}`, background: 'rgba(8,6,14,0.7)', backdropFilter: 'blur(8px)' }}>
             <div ref={barRef} onMouseDown={startScrub} style={{ height: 32, position: 'relative', cursor: 'pointer', userSelect: 'none' }}>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 0, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 9.5, color: '#a1a1aa' }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 0, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 9, color: T.textLo }}>
                 <span>0.0s</span>
                 <span>{(totalDur * 0.25).toFixed(1)}s</span>
                 <span>{(totalDur * 0.5).toFixed(1)}s</span>
                 <span>{(totalDur * 0.75).toFixed(1)}s</span>
                 <span>{totalDur.toFixed(1)}s</span>
               </div>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 19, height: 6, background: 'rgba(15,23,42,0.07)', borderRadius: 99 }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${scrubPct}%`, background: 'linear-gradient(90deg,#7c3aed,#ec4899)', borderRadius: 99 }} />
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 19, height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 99 }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${scrubPct}%`, background: 'linear-gradient(90deg,#7c3aed,#a855f7)', borderRadius: 99 }} />
               </div>
-              <div style={{ position: 'absolute', left: `calc(${scrubPct}% - 9px)`, top: 13, width: 18, height: 20, borderRadius: 5, background: '#fff', border: '2px solid #7c3aed', boxShadow: '0 2px 8px rgba(124,58,237,0.35), 0 0 0 3px rgba(124,58,237,0.1)' }} />
+              <div style={{ position: 'absolute', left: `calc(${scrubPct}% - 9px)`, top: 13, width: 18, height: 20, borderRadius: 5, background: '#fff', border: '2px solid #7c3aed', boxShadow: '0 2px 8px rgba(124,58,237,0.5), 0 0 0 3px rgba(124,58,237,0.15)' }} />
             </div>
           </div>
 
-          <div style={{ padding: '6px 22px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+          {/* ── Transport controls ── */}
+          <div style={{ padding: '6px 22px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(8,6,14,0.7)', backdropFilter: 'blur(8px)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
-                onClick={() => {
-                  if (elapsed >= totalDur) setElapsed(0);
-                  setPlaying((p) => !p);
-                  setDirection(1);
-                }}
-                style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.38)', transition: 'box-shadow 0.15s' }}
+                onClick={() => { if (elapsed >= totalDur) setElapsed(0); setPlaying((p) => !p); setDirection(1); }}
+                style={{ width: 36, height: 36, background: T.accent, border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', boxShadow: '0 0 20px rgba(124,58,237,0.5), 0 2px 8px rgba(0,0,0,0.4)', transition: 'box-shadow 0.15s' }}
               >
                 {playing ? <PauseIcon /> : <PlayIcon />}
               </button>
-              <span style={{ color: '#71717a', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 11.5 }}>
+              <span style={{ color: T.textLo, fontFamily: 'var(--font-geist-mono), monospace', fontSize: 11.5 }}>
                 {cur}s / {dur}s
               </span>
             </div>
 
-            <div style={{ display: 'flex', padding: 3, background: 'rgba(15,23,42,0.04)', borderRadius: 10, gap: 2 }}>
+            {/* Loop selector */}
+            <div className="seg-ctrl">
               {[
-                { id: 'once', icon: <OnceIcon />, label: 'Once' },
-                { id: 'loop', icon: <LoopIcon />, label: 'Loop' },
+                { id: 'once',     icon: <OnceIcon />,     label: 'Once' },
+                { id: 'loop',     icon: <LoopIcon />,     label: 'Loop' },
                 { id: 'pingpong', icon: <PingpongIcon />, label: 'Ping-pong' },
               ].map((m) => (
                 <button
                   key={m.id}
                   onClick={() => setLoop(m.id as LoopMode)}
-                  style={{
-                    padding: '5px 11px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    background: loop === m.id ? '#fff' : 'transparent',
-                    border: 'none',
-                    borderRadius: 8,
-                    color: loop === m.id ? '#0a0a14' : '#71717a',
-                    fontWeight: loop === m.id ? 500 : 400,
-                    fontSize: 11,
-                    fontFamily: 'inherit',
-                    cursor: 'pointer',
-                    boxShadow: loop === m.id ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(15,23,42,0.06)' : 'none',
-                    transition: 'all 0.15s',
-                  }}
+                  className={`seg-btn${loop === m.id ? ' on' : ''}`}
+                  style={{ padding: '5px 11px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}
                 >
                   {m.icon} {m.label}
                 </button>
@@ -572,12 +485,8 @@ export default function Home() {
             </div>
 
             <button
-              onClick={() => {
-                setElapsed(0);
-                setDirection(1);
-                setPlaying(true);
-              }}
-              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', color: '#3f3f46', padding: '7px 14px', borderRadius: 8, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+              onClick={() => { setElapsed(0); setDirection(1); setPlaying(true); }}
+              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.borderSub}`, color: T.textMid, padding: '7px 14px', borderRadius: 8, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               <ReplayIcon /> Replay
             </button>
@@ -587,12 +496,7 @@ export default function Home() {
 
       {showKbd && <KeyboardOverlay onClose={() => setShowKbd(false)} />}
       {showExport && (
-        <ExportModal
-          paths={paths}
-          anim={{ drawDur, fillStart, hold, stagger }}
-          fileName={fileName}
-          onClose={() => setShowExport(false)}
-        />
+        <ExportModal paths={paths} anim={{ drawDur, fillStart, hold, stagger }} fileName={fileName} onClose={() => setShowExport(false)} />
       )}
     </div>
   );
