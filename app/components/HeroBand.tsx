@@ -6,39 +6,16 @@ export default function HeroBand({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        height: 56,
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #4c1d95 35%, #831843 100%)',
+        height: 50,
+        background: 'rgba(8,6,14,0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         position: 'relative',
-        overflow: 'hidden',
         flexShrink: 0,
+        zIndex: 10,
       }}
     >
-      {/* Violet halo left */}
-      <div
-        style={{
-          position: 'absolute',
-          width: 700,
-          height: 240,
-          left: -100,
-          top: -50,
-          background: 'radial-gradient(ellipse, rgba(167,139,250,0.6) 0%, transparent 60%)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none',
-        }}
-      />
-      {/* Pink halo right */}
-      <div
-        style={{
-          position: 'absolute',
-          width: 700,
-          height: 240,
-          right: -100,
-          top: -50,
-          background: 'radial-gradient(ellipse, rgba(244,114,182,0.5) 0%, transparent 60%)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none',
-        }}
-      />
       <div
         style={{
           position: 'relative',
