@@ -9,14 +9,14 @@ interface Props {
 const kbdStyle: React.CSSProperties = {
   fontFamily: 'var(--font-geist-mono), monospace',
   fontSize: 10.5,
-  padding: '2px 6px',
-  background: '#fafafa',
-  border: '1px solid #ededed',
-  borderBottom: '2px solid #ededed',
-  borderRadius: 4,
+  padding: '2px 7px',
+  background: '#f4f4f5',
+  border: '1px solid rgba(15,23,42,0.12)',
+  borderBottom: '2px solid rgba(15,23,42,0.18)',
+  borderRadius: 5,
   color: '#0a0a14',
-  minWidth: 20,
-  textAlign: 'center',
+  minWidth: 22,
+  textAlign: 'center' as const,
   display: 'inline-block',
 };
 
@@ -57,8 +57,8 @@ export default function KeyboardOverlay({ onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(10,10,20,0.4)',
-        backdropFilter: 'blur(2px)',
+        background: 'rgba(10,10,20,0.5)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -66,18 +66,19 @@ export default function KeyboardOverlay({ onClose }: Props) {
       }}
     >
       <div
+        className="modal-in"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 600,
+          width: 620,
           background: '#fff',
-          borderRadius: 16,
-          boxShadow: '0 30px 80px -20px rgba(0,0,0,0.4)',
+          borderRadius: 20,
+          boxShadow: '0 50px 120px -20px rgba(0,0,0,0.3), 0 0 0 1px rgba(15,23,42,0.06)',
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid #f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(15,23,42,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#0a0a14' }}>
               <KeyboardIcon /> Keyboard shortcuts
             </div>
             <div style={{ fontSize: 11.5, color: '#71717a', marginTop: 4 }}>
@@ -86,20 +87,20 @@ export default function KeyboardOverlay({ onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: 6, background: '#fafafa', border: '1px solid #ededed', cursor: 'pointer', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 30, height: 30, borderRadius: 8, background: '#f4f4f5', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <CloseIcon />
           </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
           {groups.map((g, gi) => (
-            <div key={g.title} style={{ padding: '16px 18px', borderRight: gi < 2 ? '1px solid #f4f4f5' : 'none' }}>
-              <div style={{ fontSize: 10.5, letterSpacing: 1.3, textTransform: 'uppercase', color: '#a1a1aa', fontWeight: 600, marginBottom: 12, fontFamily: 'var(--font-geist-mono), monospace' }}>
+            <div key={g.title} style={{ padding: '18px 20px', borderRight: gi < 2 ? '1px solid rgba(15,23,42,0.06)' : 'none' }}>
+              <div style={{ fontSize: 10.5, letterSpacing: 1.3, textTransform: 'uppercase', color: '#a1a1aa', fontWeight: 600, marginBottom: 14, fontFamily: 'var(--font-geist-mono), monospace' }}>
                 {g.title}
               </div>
               {g.items.map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11.5, color: '#3f3f46' }}>{v}</span>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, color: '#3f3f46' }}>{v}</span>
                   <span style={kbdStyle}>{k}</span>
                 </div>
               ))}

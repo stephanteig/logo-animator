@@ -296,19 +296,19 @@ export default function Home() {
           <button
             onClick={() => setShowKbd(true)}
             title="Keyboard shortcuts (?)"
-            style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
+            style={{ width: 30, height: 30, background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 7, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
           >
             ?
           </button>
           <button
             onClick={clearFile}
-            style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}
+            style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}
           >
             New
           </button>
           <button
             onClick={() => setShowExport(true)}
-            style={{ background: '#fff', color: '#0a0814', border: 'none', padding: '7px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+            style={{ background: '#fff', color: '#0a0814', border: 'none', padding: '7px 18px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
           >
             <DownloadIcon /> Export
           </button>
@@ -316,23 +316,23 @@ export default function Home() {
       </HeroBand>
 
       <div style={{ flex: 1, display: 'flex', background: '#fff', overflow: 'hidden' }}>
-        <aside style={{ width: 320, padding: '18px 20px', borderRight: '1px solid #ededed', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flexShrink: 0 }}>
+        <aside style={{ width: 308, padding: '18px 18px', borderRight: '1px solid rgba(15,23,42,0.07)', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flexShrink: 0, background: '#fdfdfe' }}>
           {tab === 'animation' && (
             <>
-              {/* Smart defaults — F6 */}
-              <div style={{ padding: 12, background: smartDefaults ? 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(236,72,153,0.06))' : '#fafafa', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.18)' : '#ededed'}`, borderRadius: 10 }}>
+              {/* Smart defaults */}
+              <div style={{ padding: '12px 14px', background: smartDefaults ? 'linear-gradient(135deg, rgba(124,58,237,0.05), rgba(236,72,153,0.05))' : 'rgba(15,23,42,0.02)', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.2)' : 'rgba(15,23,42,0.07)'}`, borderRadius: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: smartDefaults ? '#7c3aed' : '#3f3f46' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: smartDefaults ? '#7c3aed' : '#3f3f46' }}>
                       <SparkleIcon /> Smart defaults
                     </div>
                     <div style={{ fontSize: 11, color: '#71717a', marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
                   </div>
                   <button
                     onClick={() => onToggleSmartDefaults(!smartDefaults)}
-                    style={{ width: 32, height: 20, borderRadius: 99, background: smartDefaults ? '#7c3aed' : '#d4d4d8', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    style={{ width: 36, height: 22, borderRadius: 99, background: smartDefaults ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : '#d4d4d8', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0, boxShadow: smartDefaults ? '0 2px 6px rgba(124,58,237,0.35)' : 'none', transition: 'all 0.2s' }}
                   >
-                    <span style={{ position: 'absolute', top: 2, left: smartDefaults ? 14 : 2, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s' }} />
+                    <span style={{ position: 'absolute', top: 3, left: smartDefaults ? 17 : 3, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.18s cubic-bezier(0.16,1,0.3,1)' }} />
                   </button>
                 </div>
               </div>
@@ -340,7 +340,7 @@ export default function Home() {
               {/* Format */}
               <div>
                 <div className="mono-label" style={{ marginBottom: 10 }}>Format</div>
-                <div style={{ display: 'flex', padding: 3, background: '#f4f4f5', borderRadius: 8, gap: 2 }}>
+                <div style={{ display: 'flex', padding: 3, background: 'rgba(15,23,42,0.04)', borderRadius: 10, gap: 2 }}>
                   {(['1:1', '16:9', '9:16'] as const).map((r) => (
                     <button
                       key={r}
@@ -350,13 +350,14 @@ export default function Home() {
                         padding: '6px 0',
                         fontSize: 12,
                         background: format === r ? '#fff' : 'transparent',
-                        borderRadius: 6,
+                        borderRadius: 8,
                         color: format === r ? '#0a0a14' : '#71717a',
                         border: 'none',
                         fontWeight: 500,
-                        boxShadow: format === r ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                        boxShadow: format === r ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(15,23,42,0.06)' : 'none',
                         cursor: 'pointer',
                         fontFamily: 'inherit',
+                        transition: 'all 0.15s',
                       }}
                     >
                       {r}
@@ -392,13 +393,13 @@ export default function Home() {
         </aside>
 
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div className="workspace-grid" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 14, left: 18, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#71717a' }}>
-              <span style={{ width: 6, height: 6, borderRadius: 99, background: '#10b981' }} />
-              Live preview
+          <div className="workspace-grid" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#fafafa' }}>
+            <div className="badge-glass" style={{ position: 'absolute', top: 14, left: 18 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 99, background: '#10b981', boxShadow: '0 0 0 2.5px rgba(16,185,129,0.22)' }} />
+              <span style={{ fontSize: 11.5, color: '#3f3f46', fontWeight: 500 }}>Live preview</span>
             </div>
-            <div style={{ position: 'absolute', top: 14, right: 18, fontSize: 12, fontFamily: 'var(--font-geist-mono), monospace', color: '#71717a' }}>
-              {previewW} × {previewH}
+            <div className="badge-glass" style={{ position: 'absolute', top: 14, right: 18, fontFamily: 'var(--font-geist-mono), monospace' }}>
+              <span style={{ fontSize: 11.5, color: '#71717a' }}>{previewW} × {previewH}</span>
             </div>
 
             {!split && (
@@ -482,30 +483,32 @@ export default function Home() {
               title="Split compare (S)"
               style={{
                 position: 'absolute',
-                bottom: 14,
+                bottom: 16,
                 right: 18,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '5px 11px',
-                background: split ? 'rgba(124,58,237,0.95)' : '#fff',
+                padding: '6px 13px',
+                background: split ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(255,255,255,0.85)',
                 color: split ? '#fff' : '#3f3f46',
-                border: `1px solid ${split ? 'transparent' : '#ededed'}`,
-                borderRadius: 7,
+                border: `1px solid ${split ? 'transparent' : 'rgba(15,23,42,0.1)'}`,
+                borderRadius: 9,
                 fontSize: 11.5,
                 fontFamily: 'inherit',
                 cursor: 'pointer',
                 fontWeight: 500,
-                boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                backdropFilter: split ? 'none' : 'blur(8px)',
+                boxShadow: split ? '0 4px 14px rgba(124,58,237,0.35)' : '0 2px 8px rgba(0,0,0,0.07)',
+                transition: 'all 0.18s cubic-bezier(0.16,1,0.3,1)',
               }}
             >
               <SplitIcon /> {split ? 'Single' : 'Split'}
             </button>
           </div>
 
-          {/* Scrub bar — F2 */}
-          <div style={{ padding: '14px 24px 6px', borderTop: '1px solid #ededed', background: '#fff' }}>
-            <div ref={barRef} onMouseDown={startScrub} style={{ height: 30, position: 'relative', cursor: 'pointer', userSelect: 'none' }}>
+          {/* Scrub bar */}
+          <div style={{ padding: '14px 24px 6px', borderTop: '1px solid rgba(15,23,42,0.07)', background: '#fff' }}>
+            <div ref={barRef} onMouseDown={startScrub} style={{ height: 32, position: 'relative', cursor: 'pointer', userSelect: 'none' }}>
               <div style={{ position: 'absolute', left: 0, right: 0, top: 0, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 9.5, color: '#a1a1aa' }}>
                 <span>0.0s</span>
                 <span>{(totalDur * 0.25).toFixed(1)}s</span>
@@ -513,14 +516,14 @@ export default function Home() {
                 <span>{(totalDur * 0.75).toFixed(1)}s</span>
                 <span>{totalDur.toFixed(1)}s</span>
               </div>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 18, height: 5, background: 'rgba(15,23,42,0.08)', borderRadius: 99 }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 19, height: 6, background: 'rgba(15,23,42,0.07)', borderRadius: 99 }}>
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${scrubPct}%`, background: 'linear-gradient(90deg,#7c3aed,#ec4899)', borderRadius: 99 }} />
               </div>
-              <div style={{ position: 'absolute', left: `calc(${scrubPct}% - 8px)`, top: 12, width: 16, height: 18, borderRadius: 4, background: '#fff', border: '2px solid #7c3aed', boxShadow: '0 4px 10px rgba(124,58,237,0.3)' }} />
+              <div style={{ position: 'absolute', left: `calc(${scrubPct}% - 9px)`, top: 13, width: 18, height: 20, borderRadius: 5, background: '#fff', border: '2px solid #7c3aed', boxShadow: '0 2px 8px rgba(124,58,237,0.35), 0 0 0 3px rgba(124,58,237,0.1)' }} />
             </div>
           </div>
 
-          <div style={{ padding: '4px 22px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+          <div style={{ padding: '6px 22px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
                 onClick={() => {
@@ -528,7 +531,7 @@ export default function Home() {
                   setPlaying((p) => !p);
                   setDirection(1);
                 }}
-                style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
+                style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', border: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.38)', transition: 'box-shadow 0.15s' }}
               >
                 {playing ? <PauseIcon /> : <PlayIcon />}
               </button>
@@ -537,7 +540,7 @@ export default function Home() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', padding: 3, background: '#f4f4f5', borderRadius: 8, gap: 2 }}>
+            <div style={{ display: 'flex', padding: 3, background: 'rgba(15,23,42,0.04)', borderRadius: 10, gap: 2 }}>
               {[
                 { id: 'once', icon: <OnceIcon />, label: 'Once' },
                 { id: 'loop', icon: <LoopIcon />, label: 'Loop' },
@@ -547,19 +550,20 @@ export default function Home() {
                   key={m.id}
                   onClick={() => setLoop(m.id as LoopMode)}
                   style={{
-                    padding: '5px 10px',
+                    padding: '5px 11px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 5,
                     background: loop === m.id ? '#fff' : 'transparent',
                     border: 'none',
-                    borderRadius: 6,
+                    borderRadius: 8,
                     color: loop === m.id ? '#0a0a14' : '#71717a',
-                    fontWeight: 500,
+                    fontWeight: loop === m.id ? 500 : 400,
                     fontSize: 11,
                     fontFamily: 'inherit',
                     cursor: 'pointer',
-                    boxShadow: loop === m.id ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                    boxShadow: loop === m.id ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(15,23,42,0.06)' : 'none',
+                    transition: 'all 0.15s',
                   }}
                 >
                   {m.icon} {m.label}
@@ -573,7 +577,7 @@ export default function Home() {
                 setDirection(1);
                 setPlaying(true);
               }}
-              style={{ background: '#fff', border: '1px solid #ededed', color: '#3f3f46', padding: '6px 12px', borderRadius: 7, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', color: '#3f3f46', padding: '7px 14px', borderRadius: 8, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
             >
               <ReplayIcon /> Replay
             </button>

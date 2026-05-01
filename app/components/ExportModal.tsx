@@ -290,8 +290,8 @@ export default function ExportModal({ paths, anim, fileName, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(10,10,20,0.5)',
-        backdropFilter: 'blur(4px)',
+        background: 'rgba(10,10,20,0.55)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -299,41 +299,42 @@ export default function ExportModal({ paths, anim, fileName, onClose }: Props) {
       }}
     >
       <div
+        className="modal-in"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 680,
+          width: 700,
           maxHeight: '90vh',
           background: '#fff',
-          borderRadius: 16,
-          boxShadow: '0 30px 80px -20px rgba(0,0,0,0.4)',
+          borderRadius: 20,
+          boxShadow: '0 50px 120px -20px rgba(0,0,0,0.35), 0 0 0 1px rgba(15,23,42,0.06)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
         {/* Header */}
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid #f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(15,23,42,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#0a0a14' }}>Export</div>
             <div style={{ fontSize: 11.5, color: '#71717a', marginTop: 2 }}>{visible.length} paths · {fileName}</div>
           </div>
           <button
             onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: 6, background: '#fafafa', border: '1px solid #ededed', cursor: 'pointer', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 30, height: 30, borderRadius: 8, background: '#f4f4f5', border: '1px solid rgba(15,23,42,0.08)', cursor: 'pointer', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <CloseIcon />
           </button>
         </div>
 
         {/* Tabs + disabled formats */}
-        <div style={{ padding: '12px 22px 0', borderBottom: '1px solid #f4f4f5', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        <div style={{ padding: '12px 24px 0', borderBottom: '1px solid rgba(15,23,42,0.07)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               style={{
-                padding: '6px 12px',
-                borderRadius: 7,
+                padding: '6px 14px',
+                borderRadius: 8,
                 fontSize: 12.5,
                 fontWeight: tab === t.id ? 500 : 400,
                 background: tab === t.id ? 'linear-gradient(135deg,#a78bfa,#ec4899)' : 'transparent',
@@ -341,6 +342,8 @@ export default function ExportModal({ paths, anim, fileName, onClose }: Props) {
                 border: 'none',
                 cursor: 'pointer',
                 marginBottom: 12,
+                boxShadow: tab === t.id ? '0 2px 8px rgba(124,58,237,0.28)' : 'none',
+                transition: 'all 0.15s',
               }}
             >
               {t.label}
@@ -373,20 +376,20 @@ export default function ExportModal({ paths, anim, fileName, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 22px', borderTop: '1px solid #f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid rgba(15,23,42,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
           <button
             onClick={onClose}
-            style={{ padding: '7px 16px', background: 'transparent', border: '1px solid #ededed', borderRadius: 8, fontSize: 12.5, color: '#71717a', cursor: 'pointer' }}
+            style={{ padding: '8px 18px', background: 'transparent', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 9, fontSize: 12.5, color: '#71717a', cursor: 'pointer' }}
           >
             Close
           </button>
           <button
             onClick={handleCopy}
             style={{
-              padding: '7px 16px',
+              padding: '8px 18px',
               background: copied ? '#10b981' : 'linear-gradient(135deg,#7c3aed,#ec4899)',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 9,
               fontSize: 12.5,
               fontWeight: 500,
               color: '#fff',
@@ -394,7 +397,8 @@ export default function ExportModal({ paths, anim, fileName, onClose }: Props) {
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              transition: 'background 0.2s',
+              boxShadow: copied ? '0 2px 8px rgba(16,185,129,0.3)' : '0 2px 8px rgba(124,58,237,0.3)',
+              transition: 'all 0.2s',
             }}
           >
             <CopyIcon />
