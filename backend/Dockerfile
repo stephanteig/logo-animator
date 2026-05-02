@@ -19,7 +19,4 @@ RUN mkdir -p /tmp/trace_jobs && chmod 777 /tmp/trace_jobs
 
 EXPOSE 8000
 
-# Run as the manim user (non-root)
-USER user
-
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
