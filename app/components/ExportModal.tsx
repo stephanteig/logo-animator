@@ -217,7 +217,7 @@ function VideoTab({
   bgColor: string;
   format: '1:1' | '16:9' | '9:16';
 }) {
-  const [backendUrl, setBackendUrl] = useState('http://localhost:8000');
+  const [backendUrl, setBackendUrl] = useState('https://trace-backend.stephanartery.com');
   const [quality, setQuality] = useState<Quality>('h');
   const [fps, setFps] = useState<25 | 60>(60);
   const [backendOk, setBackendOk] = useState<boolean | null>(null);
@@ -371,7 +371,7 @@ function VideoTab({
             value={backendUrl}
             onChange={(e) => { setBackendUrl(e.target.value); setBackendOk(null); }}
             style={S.input}
-            placeholder="http://localhost:8000"
+            placeholder="https://trace-backend.stephanartery.com"
             spellCheck={false}
           />
           <button
