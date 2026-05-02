@@ -75,36 +75,54 @@ function generatePython(
   format: '1:1' | '16:9' | '9:16',
 ): string {
   const { drawDur, fillStart, stagger, hold } = anim;
-  const n = paths.filter((p) => p.visible).length;
+  const visible = paths.filter((p) => p.visible);
+  const n = visible.length;
   const [w, h] = formatDimensions(format);
   const base = baseName(fileName);
   const transparent = bgColor === 'transparent';
 
+  // Pick the most common stroke color among visible paths (fallback white)
+  const strokeCounts: Record<string, number> = {};
+  for (const p of visible) {
+    const c = p.stroke || '#ffffff';
+    strokeCounts[c] = (strokeCounts[c] ?? 0) + 1;
+  }
+  const strokeColor = visible.length > 0
+    ? Object.entries(strokeCounts).sort((a, b) => b[1] - a[1])[0][0]
+    : '#ffffff';
+
+  // Average stroke width
+  const strokeWidth = visible.length > 0
+    ? (visible.reduce((s, p) => s + (p.strokeWidth || 1.5), 0) / visible.length)
+    : 1.5;
+
   const bgLine = transparent
-    ? `# Transparent background — render with: manim -qh --transparent --format mov logo_animation.py LogoAnimation`
+    ? `# transparent background — pass --transparent --format mov to manim at render time`
     : `config.background_color = "${bgColor}"`;
+
+  const renderComment = transparent
+    ? `# Render: manim -qh --transparent --format mov logo_animation.py LogoAnimation`
+    : `# Render: manim -pqh logo_animation.py LogoAnimation`;
 
   return `from manim import *
 
-# Render: manim -pqh logo_animation.py LogoAnimation
-${transparent ? '# For transparent bg: manim -qh --transparent --format mov logo_animation.py LogoAnimation' : ''}
+${renderComment}
 
 config.pixel_width  = ${w}
 config.pixel_height = ${h}
 config.frame_rate   = 60
+${bgLine}
 
 SVG_FILE     = "${base}.svg"
-LOGO_WIDTH   = 6.0      # Manim scene units
-STROKE_COLOR = "#FFFFFF"
-STROKE_WIDTH = 1.5
+LOGO_WIDTH   = 6.0      # Manim scene units — adjust to taste
+STROKE_COLOR = "${strokeColor}"
+STROKE_WIDTH = ${strokeWidth.toFixed(2)}
 
 DRAW_TIME    = ${drawDur.toFixed(2)}      # seconds — stroke draw phase
 LAG_RATIO    = ${n > 1 ? (stagger / drawDur).toFixed(2) : '0.00'}      # stagger between paths
 FILL_TIME    = 0.60      # seconds — fill reveal phase
 WAIT_BETWEEN = ${fillStart.toFixed(2)}      # pause between phases
 WAIT_END     = ${hold.toFixed(2)}      # hold at end
-
-${bgLine}
 
 
 class LogoAnimation(Scene):
