@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  trace-backend:
+    build: .
+    image: trace-backend:latest
+    container_name: trace-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist rendered videos across container restarts
+      - trace_jobs:/tmp/trace_jobs
+    restart: unless-stopped
+    # Uncomment to cap resource usage on slower machines:
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "4"
+    #       memory: "4g"
+
+volumes:
+  trace_jobs:

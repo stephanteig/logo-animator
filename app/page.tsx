@@ -43,6 +43,7 @@ const T = {
 export default function Home() {
   const [paths, setPaths] = useState<PathItem[]>([]);
   const [svgMarkup, setSvgMarkup] = useState<string>('');
+  const [originalSvg, setOriginalSvg] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
 
   const [drawDur, setDrawDur] = useState(2.4);
@@ -78,6 +79,7 @@ export default function Home() {
     const { paths: parsed, svgMarkup: markup } = parseSVG(s.svg);
     setPaths(parsed);
     setSvgMarkup(markup);
+    setOriginalSvg(s.svg);
     setFileName(`${s.name.toLowerCase()}.svg`);
     if (smartDefaults) {
       const d = applySmartDefaults(parsed.length);
@@ -96,6 +98,7 @@ export default function Home() {
     if (parsed.length === 0) return;
     setPaths(parsed);
     setSvgMarkup(markup);
+    setOriginalSvg(text);
     setFileName(name);
     if (smartDefaults) {
       const d = applySmartDefaults(parsed.length);
@@ -112,6 +115,7 @@ export default function Home() {
   const clearFile = () => {
     setPaths([]);
     setSvgMarkup('');
+    setOriginalSvg('');
     setFileName('');
     setPlaying(false);
     setElapsed(0);
@@ -496,7 +500,15 @@ export default function Home() {
 
       {showKbd && <KeyboardOverlay onClose={() => setShowKbd(false)} />}
       {showExport && (
-        <ExportModal paths={paths} anim={{ drawDur, fillStart, hold, stagger }} fileName={fileName} onClose={() => setShowExport(false)} />
+        <ExportModal
+          paths={paths}
+          anim={{ drawDur, fillStart, hold, stagger }}
+          fileName={fileName}
+          originalSvg={originalSvg}
+          bgColor={bgColor}
+          format={format}
+          onClose={() => setShowExport(false)}
+        />
       )}
     </div>
   );
