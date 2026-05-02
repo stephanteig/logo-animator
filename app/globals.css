@@ -31,7 +31,7 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
+  overflow: hidden;  /* overridden to auto on mobile via media query below */
   margin: 0;
   padding: 0;
 }
@@ -242,4 +242,35 @@ body {
   border-color: var(--accent);
   cursor: pointer;
   box-shadow: 0 0 0 3px rgba(124,58,237,0.25);
+}
+
+/* ── Mobile overrides ──────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Allow the page to scroll on small screens */
+  html, body { overflow: auto; }
+
+  /* Larger touch targets for sliders */
+  .trace-slider { height: 22px; }
+  .trace-slider::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -7px; }
+  .trace-slider::-moz-range-thumb    { width: 18px; height: 18px; }
+
+  /* Stack segment controls vertically if needed */
+  .seg-btn { font-size: 12px; padding: 7px 0; }
+
+  /* Modal takes full screen on mobile */
+  .modal-mobile-full {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+  }
+
+  /* Hide desktop-only elements */
+  .desktop-only { display: none !important; }
+
+  /* Show mobile-only elements */
+  .mobile-only { display: flex !important; }
 }

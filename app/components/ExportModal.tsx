@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CloseIcon, CopyIcon } from './Icons';
 import type { PathItem, Anim } from '../lib/types';
+import { useIsMobile } from '../lib/hooks';
 
 interface Props {
   paths: PathItem[];
@@ -588,6 +589,7 @@ docker compose up --build`}
 export default function ExportModal({ paths, anim, fileName, originalSvg, bgColor, format, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('video');
   const [copied, setCopied] = useState(false);
+  const isMobile = useIsMobile();
 
   const visible = paths.filter((p) => p.visible);
 
@@ -630,18 +632,19 @@ export default function ExportModal({ paths, anim, fileName, originalSvg, bgColo
   return (
     <div
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
+      style={{ position: 'fixed', inset: 0, background: isMobile ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }}
     >
       <div
         className="modal-in"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 680, maxHeight: '92vh',
+          width: isMobile ? '100%' : 680,
+          maxHeight: isMobile ? '92dvh' : '92vh',
           background: 'rgba(14,10,24,0.97)',
           backdropFilter: 'blur(40px)',
           WebkitBackdropFilter: 'blur(40px)',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 20,
+          borderRadius: isMobile ? '20px 20px 0 0' : 20,
           boxShadow: '0 40px 100px rgba(0,0,0,0.78), 0 0 80px rgba(124,58,237,0.08)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}

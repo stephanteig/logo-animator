@@ -24,6 +24,7 @@ import {
 } from './components/Icons';
 import { SAMPLES, type SampleKey } from './lib/samples';
 import { parseSVG, applySmartDefaults } from './lib/svgParser';
+import { useIsMobile } from './lib/hooks';
 import type { PathItem, LoopMode } from './lib/types';
 
 const FILL_BLOOM_DUR = 0.6;
@@ -66,6 +67,8 @@ export default function Home() {
   const [tab, setTab] = useState<'animation' | 'stroke' | 'background'>('animation');
   const [bgColor, setBgColor] = useState<string>('#0d0b18');
   const [strokeWidthOverride, setStrokeWidthOverride] = useState<number | null>(null);
+
+  const isMobile = useIsMobile();
 
   const visibleCount = paths.filter((p) => p.visible).length;
   const totalDur =
@@ -195,38 +198,43 @@ export default function Home() {
 
   // ── Scrubber ────────────────────────────────────────────────
   const barRef = useRef<HTMLDivElement>(null);
-  const startScrub = (e: React.MouseEvent) => {
+  const startScrub = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     setPlaying(false);
     if (!barRef.current) return;
     const rect = barRef.current.getBoundingClientRect();
+    const getX = (ev: MouseEvent | TouchEvent) =>
+      'touches' in ev ? ev.touches[0].clientX : (ev as MouseEvent).clientX;
     const update = (clientX: number) => {
       const x = (clientX - rect.left) / rect.width;
       setElapsed(Math.max(0, Math.min(1, x)) * totalDur);
     };
-    update(e.clientX);
-    const onMove = (ev: MouseEvent) => update(ev.clientX);
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    update(startX);
+    const onMove = (ev: MouseEvent | TouchEvent) => update(getX(ev));
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   };
 
   // ── Empty state ──────────────────────────────────────────────
   if (!fileLoaded) {
     return (
-      <div style={{ width: '100%', height: '100vh', minHeight: 760, background: T.bgDeep, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', minHeight: '100dvh', background: T.bgDeep, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column' }}>
         <HeroBand>
           <TraceWordmark />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={() => setShowKbd(true)}
-              title="Keyboard shortcuts (?)"
-              style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.06)', color: T.textMid, border: `1px solid ${T.borderSub}`, borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
-            >?</button>
-          </div>
+          <button
+            onClick={() => setShowKbd(true)}
+            title="Keyboard shortcuts (?)"
+            style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.06)', color: T.textMid, border: `1px solid ${T.borderSub}`, borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-geist-mono), monospace', cursor: 'pointer' }}
+          >?</button>
         </HeroBand>
         <EmptyState onSamplePick={loadSample} onFileDrop={loadSVGText} />
         {showKbd && <KeyboardOverlay onClose={() => setShowKbd(false)} />}
@@ -235,14 +243,14 @@ export default function Home() {
   }
 
   // ── Editor ───────────────────────────────────────────────────
-  const PREVIEW_MAX_W = 640;
-  const PREVIEW_MAX_H = 540;
+  const PREVIEW_MAX_W = isMobile ? 9999 : 640;   // mobile: fill width
+  const PREVIEW_MAX_H = isMobile ? 300 : 540;
+
   const ratio = format === '16:9' ? 16 / 9 : format === '9:16' ? 9 / 16 : 1;
   let previewBoxW = PREVIEW_MAX_W;
   let previewBoxH = previewBoxW / ratio;
   if (previewBoxH > PREVIEW_MAX_H) { previewBoxH = PREVIEW_MAX_H; previewBoxW = previewBoxH * ratio; }
-  previewBoxW = Math.round(previewBoxW);
-  previewBoxH = Math.round(previewBoxH);
+  if (!isMobile) { previewBoxW = Math.round(previewBoxW); previewBoxH = Math.round(previewBoxH); }
 
   const previewW = format === '16:9' ? 1920 : format === '9:16' ? 1080 : 1080;
   const previewH = format === '16:9' ? 1080 : format === '9:16' ? 1920 : 1080;
@@ -251,6 +259,211 @@ export default function Home() {
   const dur = totalDur.toFixed(2);
   const scrubPct = totalDur > 0 ? (elapsed / totalDur) * 100 : 0;
 
+  // ── Sidebar panel content (shared between desktop & mobile) ──
+  const SidebarContent = () => (
+    <>
+      {tab === 'animation' && (
+        <>
+          {/* Smart defaults toggle */}
+          <div style={{ padding: '12px 14px', background: smartDefaults ? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.28)' : T.borderSub}`, borderRadius: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: smartDefaults ? '#c4b5fd' : T.textMid }}>
+                  <SparkleIcon /> Smart defaults
+                </div>
+                <div style={{ fontSize: 11, color: T.textLo, marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
+              </div>
+              <button
+                onClick={() => onToggleSmartDefaults(!smartDefaults)}
+                style={{ width: 36, height: 22, borderRadius: 99, background: smartDefaults ? T.accent : 'rgba(255,255,255,0.12)', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0, boxShadow: smartDefaults ? '0 0 10px rgba(124,58,237,0.45)' : 'none', transition: 'all 0.2s' }}
+              >
+                <span style={{ position: 'absolute', top: 3, left: smartDefaults ? 17 : 3, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left 0.18s cubic-bezier(0.16,1,0.3,1)' }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Format */}
+          <div>
+            <div className="mono-label" style={{ marginBottom: 8 }}>Format</div>
+            <div className="seg-ctrl">
+              {(['1:1', '16:9', '9:16'] as const).map((r) => (
+                <button key={r} onClick={() => setFormat(r)} className={`seg-btn${format === r ? ' on' : ''}`} style={{ flex: 1 }}>{r}</button>
+              ))}
+            </div>
+          </div>
+
+          <PathList paths={paths} onChange={setPaths} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="mono-label">Timing</div>
+            <TraceSlider label="Stroke draw"  displayVal={`${drawDur.toFixed(2)}s`}  value={drawDur}   min={0.3} max={6} onChange={setDrawDur} />
+            <TraceSlider label="Fill bloom"   displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0}   max={3} onChange={setFillStart} />
+            <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`}   value={stagger}   min={0}   max={1} onChange={setStagger} />
+            <TraceSlider label="Hold at end"  displayVal={`${hold.toFixed(2)}s`}      value={hold}      min={0}   max={3} onChange={setHold} />
+          </div>
+        </>
+      )}
+
+      {tab === 'stroke' && (
+        <StrokePanel paths={paths} onChange={setPaths} strokeWidthOverride={strokeWidthOverride} onStrokeWidthChange={setStrokeWidthOverride} />
+      )}
+
+      {tab === 'background' && (
+        <BackgroundPanel bgColor={bgColor} onChange={setBgColor} />
+      )}
+    </>
+  );
+
+  // ── Tab bar (used in both mobile and desktop nav) ────────────
+  const TABS = [
+    ['animation', 'Animation'],
+    ['stroke',    'Stroke'],
+    ['background','Background'],
+  ] as const;
+
+  if (isMobile) {
+    // ── Mobile layout ──────────────────────────────────────────
+    return (
+      <div style={{ width: '100%', minHeight: '100dvh', background: T.bgDeep, color: T.textHi, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Navbar — compact on mobile */}
+        <HeroBand>
+          <TraceWordmark />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              onClick={clearFile}
+              style={{ background: 'rgba(255,255,255,0.07)', color: T.textMid, border: `1px solid ${T.borderSub}`, padding: '5px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+            >New</button>
+            <button
+              onClick={() => setShowExport(true)}
+              style={{ background: T.accent, color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', boxShadow: '0 0 16px rgba(124,58,237,0.45)', fontFamily: 'inherit' }}
+            >
+              <DownloadIcon /> Export
+            </button>
+          </div>
+        </HeroBand>
+
+        {/* Preview area — full width, capped height */}
+        <div
+          className="workspace-grid"
+          style={{ width: '100%', aspectRatio: `${ratio}`, maxHeight: 320, background: T.bgDeep, position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+        >
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <AnimatedPreview paths={paths} svgMarkup={svgMarkup} elapsed={elapsed} drawDur={drawDur} fillStart={fillStart} stagger={stagger} bgColor={bgColor} strokeWidthOverride={strokeWidthOverride} />
+          </div>
+          {/* Resolution badge */}
+          <div className="badge-glass" style={{ position: 'absolute', top: 10, right: 12, fontFamily: 'var(--font-geist-mono), monospace' }}>
+            <span style={{ fontSize: 9.5 }}>{previewW} × {previewH}</span>
+          </div>
+        </div>
+
+        {/* Scrub bar */}
+        <div style={{ padding: '10px 16px 4px', borderTop: `1px solid ${T.borderSub}`, background: 'rgba(8,6,14,0.9)', flexShrink: 0 }}>
+          <div
+            ref={barRef}
+            onMouseDown={startScrub}
+            onTouchStart={startScrub}
+            style={{ height: 28, position: 'relative', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 8.5, color: T.textLo }}>
+              <span>0.0s</span><span>{(totalDur * 0.5).toFixed(1)}s</span><span>{totalDur.toFixed(1)}s</span>
+            </div>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 17, height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 99 }}>
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${scrubPct}%`, background: 'linear-gradient(90deg,#7c3aed,#a855f7)', borderRadius: 99 }} />
+            </div>
+            <div style={{ position: 'absolute', left: `calc(${scrubPct}% - 9px)`, top: 11, width: 18, height: 20, borderRadius: 5, background: '#fff', border: '2px solid #7c3aed', boxShadow: '0 2px 8px rgba(124,58,237,0.5)' }} />
+          </div>
+        </div>
+
+        {/* Transport controls — compact single row on mobile */}
+        <div style={{ padding: '4px 14px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(8,6,14,0.9)', flexShrink: 0, gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => { if (elapsed >= totalDur) setElapsed(0); setPlaying((p) => !p); setDirection(1); }}
+              style={{ width: 34, height: 34, background: T.accent, border: 'none', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', boxShadow: '0 0 16px rgba(124,58,237,0.5)', flexShrink: 0 }}
+            >
+              {playing ? <PauseIcon /> : <PlayIcon />}
+            </button>
+            <span style={{ color: T.textLo, fontFamily: 'var(--font-geist-mono), monospace', fontSize: 10.5, whiteSpace: 'nowrap' }}>
+              {cur}s / {dur}s
+            </span>
+          </div>
+
+          <div className="seg-ctrl" style={{ flex: 1, maxWidth: 200 }}>
+            {[
+              { id: 'once',     icon: <OnceIcon /> },
+              { id: 'loop',     icon: <LoopIcon /> },
+              { id: 'pingpong', icon: <PingpongIcon /> },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setLoop(m.id as LoopMode)}
+                className={`seg-btn${loop === m.id ? ' on' : ''}`}
+                style={{ flex: 1, padding: '6px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {m.icon}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setElapsed(0); setDirection(1); setPlaying(true); }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.borderSub}`, color: T.textMid, width: 34, height: 34, borderRadius: 8, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            title="Replay"
+          >
+            <ReplayIcon />
+          </button>
+        </div>
+
+        {/* Panel tab bar */}
+        <div style={{ display: 'flex', borderTop: `1px solid ${T.borderSub}`, borderBottom: `1px solid ${T.borderSub}`, background: 'rgba(8,6,14,0.85)', flexShrink: 0 }}>
+          {TABS.map(([id, label]) => {
+            const active = tab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                style={{
+                  flex: 1, padding: '10px 4px',
+                  background: active ? 'rgba(124,58,237,0.15)' : 'transparent',
+                  color: active ? '#c4b5fd' : T.textMid,
+                  borderBottom: active ? `2px solid ${T.accent}` : '2px solid transparent',
+                  border: 'none',
+                  fontSize: 12, fontWeight: active ? 600 : 400,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Panel content — scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, background: T.bgPanel }}>
+          <SidebarContent />
+          {/* Bottom spacer for comfortable scrolling */}
+          <div style={{ height: 16 }} />
+        </div>
+
+        {showKbd && <KeyboardOverlay onClose={() => setShowKbd(false)} />}
+        {showExport && (
+          <ExportModal
+            paths={paths}
+            anim={{ drawDur, fillStart, hold, stagger }}
+            fileName={fileName}
+            originalSvg={originalSvg}
+            bgColor={bgColor}
+            format={format}
+            onClose={() => setShowExport(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Desktop layout ─────────────────────────────────────────
   return (
     <div style={{ width: '100%', height: '100vh', minHeight: 760, background: T.bgDeep, color: T.textHi, fontFamily: 'var(--font-geist-sans)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -259,11 +472,7 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <TraceWordmark />
           <nav style={{ display: 'flex', gap: 2, fontSize: 12.5 }}>
-            {([
-              ['animation', 'Animation'],
-              ['stroke',    'Stroke'],
-              ['background','Background'],
-            ] as const).map(([id, label]) => {
+            {TABS.map(([id, label]) => {
               const active = tab === id;
               return (
                 <button
@@ -315,56 +524,7 @@ export default function Home() {
 
         {/* ── Sidebar ── */}
         <aside style={{ width: 300, padding: '16px 16px', borderRight: `1px solid ${T.borderSub}`, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', flexShrink: 0, background: T.bgPanel, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-
-          {tab === 'animation' && (
-            <>
-              {/* Smart defaults toggle */}
-              <div style={{ padding: '12px 14px', background: smartDefaults ? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${smartDefaults ? 'rgba(124,58,237,0.28)' : T.borderSub}`, borderRadius: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: smartDefaults ? '#c4b5fd' : T.textMid }}>
-                      <SparkleIcon /> Smart defaults
-                    </div>
-                    <div style={{ fontSize: 11, color: T.textLo, marginTop: 3, lineHeight: 1.4 }}>Auto-tune timing per file</div>
-                  </div>
-                  <button
-                    onClick={() => onToggleSmartDefaults(!smartDefaults)}
-                    style={{ width: 36, height: 22, borderRadius: 99, background: smartDefaults ? T.accent : 'rgba(255,255,255,0.12)', border: 'none', position: 'relative', cursor: 'pointer', flexShrink: 0, boxShadow: smartDefaults ? '0 0 10px rgba(124,58,237,0.45)' : 'none', transition: 'all 0.2s' }}
-                  >
-                    <span style={{ position: 'absolute', top: 3, left: smartDefaults ? 17 : 3, width: 16, height: 16, borderRadius: 99, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left 0.18s cubic-bezier(0.16,1,0.3,1)' }} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Format */}
-              <div>
-                <div className="mono-label" style={{ marginBottom: 8 }}>Format</div>
-                <div className="seg-ctrl">
-                  {(['1:1', '16:9', '9:16'] as const).map((r) => (
-                    <button key={r} onClick={() => setFormat(r)} className={`seg-btn${format === r ? ' on' : ''}`} style={{ flex: 1 }}>{r}</button>
-                  ))}
-                </div>
-              </div>
-
-              <PathList paths={paths} onChange={setPaths} />
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div className="mono-label">Timing</div>
-                <TraceSlider label="Stroke draw"  displayVal={`${drawDur.toFixed(2)}s`}  value={drawDur}   min={0.3} max={6} onChange={setDrawDur} />
-                <TraceSlider label="Fill bloom"   displayVal={`${fillStart.toFixed(2)}s`} value={fillStart} min={0}   max={3} onChange={setFillStart} />
-                <TraceSlider label="Path stagger" displayVal={`${stagger.toFixed(2)}s`}   value={stagger}   min={0}   max={1} onChange={setStagger} />
-                <TraceSlider label="Hold at end"  displayVal={`${hold.toFixed(2)}s`}      value={hold}      min={0}   max={3} onChange={setHold} />
-              </div>
-            </>
-          )}
-
-          {tab === 'stroke' && (
-            <StrokePanel paths={paths} onChange={setPaths} strokeWidthOverride={strokeWidthOverride} onStrokeWidthChange={setStrokeWidthOverride} />
-          )}
-
-          {tab === 'background' && (
-            <BackgroundPanel bgColor={bgColor} onChange={setBgColor} />
-          )}
+          <SidebarContent />
         </aside>
 
         {/* ── Main ── */}
